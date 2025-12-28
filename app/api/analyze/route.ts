@@ -56,10 +56,15 @@ export async function POST(req: Request) {
 
     parts.push({ text: prompt });
 
+// ... (上の部分はそのまま)
+
+    // 4. AIモデルの指定（★ここを最新の 2.5 Flash に変更！）
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash", // ← これが正解です
       generationConfig: { responseMimeType: "application/json" }
     });
+
+// ... (下もそのまま)
 
     const result = await model.generateContent(parts);
     const responseText = result.response.text();
