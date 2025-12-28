@@ -218,7 +218,7 @@ export default function Home() {
   const handleDownloadImage = async () => {
     if (!resultRef.current) return;
     try {
-      const canvas = await html2canvas(resultRef.current, { backgroundColor: "#0B1120", scale: 2 });
+      const canvas = await html2canvas(resultRef.current, { backgroundColor: "#0B1120", scale: 2 } as any);
       const link = document.createElement("a");
       link.download = `初期費用診断_${result?.property_name || "結果"}.png`;
       link.href = canvas.toDataURL("image/png");
