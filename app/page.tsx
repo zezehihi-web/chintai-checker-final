@@ -17,7 +17,7 @@ type AnalysisResult = {
   total_original: number;
   total_fair: number;
   discount_amount: number;
-  savings_magic: string; // ★追加：浮いたお金でできること
+  savings_magic: string;
   pro_review: {
     title: string;
     content: string;
@@ -39,7 +39,41 @@ const TechBackground = () => (
   </div>
 );
 
-// --- スクロール検知 ---
+// --- 画像圧縮関数 (New!) ---
+const compressImage = async (file: File): Promise<File> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      img.src = e.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        // 最大幅を1200pxに制限
+        const maxWidth = 1200;
+        const scaleSize = maxWidth / img.width;
+        const width = Math.min(maxWidth, img.width);
+        const height = img.height * (img.width > maxWidth ? scaleSize : 1);
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // JPEG品質0.7で圧縮
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(new File([blob], file.name, { type: "image/jpeg" }));
+          } else {
+            reject(new Error("画像圧縮に失敗しました"));
+          }
+        }, "image/jpeg", 0.7);
+      };
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
+// --- スクロール検知フック ---
 function useScrollDirection() {
   const [scrollDirection, setScrollDirection] = useState<"up" | "down" | null>(null);
   const [prevScrollY, setPrevScrollY] = useState(0);
@@ -107,13 +141,11 @@ export default function Home() {
     const runAnimation = () => {
       const current = progressRef.current;
       let increment = 0; let delay = 100;
-
       if (current < 20) { increment = 1.0; delay = 80; setLoadingStep("見積書データをスキャン中..."); }
       else if (current < 40) { increment = 0.5; delay = 100; setLoadingStep("物件情報と金額を抽出中..."); }
       else if (current < 60) { increment = 0.4; delay = 120; setLoadingStep("法規・相場データベースと照合中..."); }
       else if (current < 80) { increment = 0.3; delay = 150; setLoadingStep("隠れコスト・不要オプション検知中..."); }
       else { increment = 0.05; delay = 200; setLoadingStep("削減レポートを作成中..."); }
-
       if (current + increment < 99) { progressRef.current += increment; } 
       else { progressRef.current = 99; }
       setLoadingProgress(progressRef.current);
@@ -123,10 +155,26 @@ export default function Home() {
 
     try {
       const formData = new FormData();
-      formData.append("estimate", estimateFile);
-      if (planFile) formData.append("plan", planFile);
 
+      // ★ここで画像を圧縮してから送信
+      setLoadingStep("画像を最適化中...");
+      const compressedEstimate = await compressImage(estimateFile);
+      formData.append("estimate", compressedEstimate);
+
+      if (planFile) {
+        const compressedPlan = await compressImage(planFile);
+        formData.append("plan", compressedPlan);
+      }
+
+      // API送信
       const res = await fetch("/api/analyze", { method: "POST", body: formData });
+      
+      // レスポンスの確認
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+         throw new Error("サーバーからの応答が不正です（タイムアウトの可能性があります）");
+      }
+
       const data = await res.json();
       
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -142,7 +190,8 @@ export default function Home() {
       }, 600);
     } catch (error: any) {
       if (timerRef.current) clearTimeout(timerRef.current);
-      setErrorMessage("解析エラーが発生しました。");
+      console.error(error);
+      setErrorMessage(error.message || "解析エラーが発生しました。");
       setIsLoading(false);
     }
   };
@@ -234,7 +283,7 @@ export default function Home() {
           </label>
         </div>
 
-        {/* Loader */}
+        {/* Action Button & Loader */}
         <div className="mb-12 text-center">
           {!isLoading ? (
             <button
@@ -263,6 +312,17 @@ export default function Home() {
             </div>
           )}
         </div>
+        
+        {/* エラーメッセージ表示エリア (New!) */}
+        {errorMessage && (
+          <div className="max-w-md mx-auto mb-10 p-4 bg-red-500/10 border border-red-500/50 rounded-xl text-center">
+            <p className="text-red-300 text-sm font-bold">⚠️ {errorMessage}</p>
+            <p className="text-xs text-red-400 mt-1">
+              画像のサイズが大きすぎるか、通信がタイムアウトしました。<br/>
+              別の画像で試すか、Wi-Fi環境をご確認ください。
+            </p>
+          </div>
+        )}
 
         {/* Results */}
         {result && (
@@ -314,7 +374,7 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* ★新機能: 夢の提案 (Savings Magic) */}
+              {/* Savings Magic */}
               <div className="mb-8 bg-gradient-to-r from-pink-900/30 to-rose-900/30 border border-pink-500/30 rounded-2xl p-5 flex items-start gap-4 relative overflow-hidden">
                 <div className="text-3xl p-2 bg-pink-500/20 rounded-full">🎁</div>
                 <div>
