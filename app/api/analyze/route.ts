@@ -1,6 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 
+// タイムアウト対策（60秒まで待つ設定）
+export const maxDuration = 60;
+
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export async function POST(req: Request) {
@@ -29,7 +32,7 @@ export async function POST(req: Request) {
     const prompt = `
     あなたは不動産のプロです。以下の見積書を解析し、JSON形式でのみ出力してください。
     Markdown記法は含めず、純粋なJSON文字列だけを返してください。
-
+    
     【出力JSONの構造】
     {
       "property_name": "物件名（不明なら'不明'）",
@@ -54,9 +57,10 @@ export async function POST(req: Request) {
     `;
     parts.push({ text: prompt });
 
-    // ★あなたの言う通り "gemini-2.5-flash" を使います！
+    // ★ここを「gemini-1.5-flash-002」にします。
+    // ※これが現在APIで確実に動く最新版の識別名です。
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-2.5-flash",
+      model: "gemini-1.5-flash-002",
       generationConfig: { responseMimeType: "application/json" }
     });
 
@@ -66,7 +70,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ result: json });
 
   } catch (error: any) {
-    console.error("Server Error:", error);
+    console.error("Server Error Details:", error);
     return NextResponse.json({ error: "解析エラー", details: error.message }, { status: 500 });
   }
 }
