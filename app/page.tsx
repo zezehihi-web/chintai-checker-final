@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
-import html2canvas from "html2canvas";
+// 修正: ここでの html2canvas のインポートは削除しました（エラー回避のため）
 
 // --- 型定義 ---
 type AnalysisResult = {
@@ -29,8 +29,7 @@ type AnalysisResult = {
   risk_score?: number;
 };
 
-// --- 画像圧縮関数 (ここがポイント！) ---
-// 大きな画像を読み込んで、幅1024px以下・画質60%に圧縮します
+// --- 画像圧縮関数 ---
 const compressImage = async (file: File): Promise<File> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -44,7 +43,7 @@ const compressImage = async (file: File): Promise<File> => {
 
     img.onload = () => {
       const canvas = document.createElement("canvas");
-      // 最大幅を1024pxに制限（これなら文字も読めて、容量は軽い）
+      // 最大幅を1024pxに制限
       const maxWidth = 1024;
       const scaleSize = maxWidth / img.width;
       const width = Math.min(maxWidth, img.width);
@@ -59,10 +58,9 @@ const compressImage = async (file: File): Promise<File> => {
       }
       ctx.drawImage(img, 0, 0, width, height);
 
-      // JPEG品質0.6（60%）で圧縮
+      // JPEG品質0.6で圧縮
       canvas.toBlob((blob) => {
         if (blob) {
-          // 元のファイル名を引き継ぎつつ、新しい軽量ファイルを作成
           resolve(new File([blob], file.name, { type: "image/jpeg" }));
         } else {
           reject(new Error("画像の圧縮に失敗しました"));
@@ -127,7 +125,6 @@ export default function Home() {
     setErrorMessage("");
     setResult(null);
 
-    // プログレスバーのアニメーション
     const runAnimation = () => {
       const current = progressRef.current;
       let increment = 0; let delay = 100;
@@ -145,8 +142,6 @@ export default function Home() {
 
     try {
       const formData = new FormData();
-
-      // ★ここで送信前に画像を圧縮！
       setLoadingStep("画像を最適化中(軽量化)...");
       
       try {
@@ -154,7 +149,6 @@ export default function Home() {
         formData.append("estimate", compressedEstimate);
       } catch (e) {
         console.error("圧縮失敗:", e);
-        // 圧縮に失敗したら元のファイルを使う（保険）
         formData.append("estimate", estimateFile);
       }
 
@@ -169,7 +163,6 @@ export default function Home() {
 
       setLoadingStep("AIが解析中...");
       
-      // API送信
       const res = await fetch("/api/analyze", { method: "POST", body: formData });
       
       const contentType = res.headers.get("content-type");
@@ -178,7 +171,6 @@ export default function Home() {
       }
 
       const data = await res.json();
-      
       if (timerRef.current) clearTimeout(timerRef.current);
 
       if (!res.ok) throw new Error(data.error || "解析失敗");
@@ -202,7 +194,7 @@ export default function Home() {
 
   const formatYen = (num: number) => new Intl.NumberFormat('ja-JP').format(num);
 
-  // シェア機能
+  // シェア・保存機能
   const generateShareText = () => {
     if (!result) return "";
     return `【${result.property_name}】の初期費用診断💡\n見直しで約【${formatYen(result.discount_amount)}円】安くなるかも！？\n浮いたお金で「${result.savings_magic}」ができちゃう✨\n\n👇 診断はこちら\n`;
@@ -217,15 +209,20 @@ export default function Home() {
     setTimeout(() => setIsCopied(false), 2000);
   };
   
+  // ★修正箇所: ここで部品を動的に読み込みます
   const handleDownloadImage = async () => {
     if (!resultRef.current) return;
     try {
+      const html2canvas = (await import("html2canvas")).default;
       const canvas = await html2canvas(resultRef.current, { backgroundColor: "#0B1120", scale: 2 } as any);
       const link = document.createElement("a");
       link.download = `初期費用診断_${result?.property_name || "結果"}.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-    } catch (err) { alert("保存に失敗しました"); }
+    } catch (err) { 
+      console.error(err);
+      alert("保存に失敗しました"); 
+    }
   };
 
   return (
