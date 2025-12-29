@@ -54,9 +54,9 @@ export async function POST(req: Request) {
     `;
     parts.push({ text: prompt });
 
-    // ★ここを「gemini-1.5-flash」にします。これが現在最も確実です。
+    // ★あなたの言う通り "gemini-2.5-flash" を使います！
     const model = genAI.getGenerativeModel({ 
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       generationConfig: { responseMimeType: "application/json" }
     });
 
