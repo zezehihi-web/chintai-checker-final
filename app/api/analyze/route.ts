@@ -46,7 +46,9 @@ export async function POST(req: Request) {
        - 相場（2万円/2年）より高い場合は「交渉可」。自分で加入する選択肢を提示してください。
 
     3. **仲介手数料**
-       - 原則0.5ヶ月分を適正とします。1ヶ月分の場合は「交渉可」。
+       - 原則0.5ヶ月分を適正とします。
+       - 0.5ヶ月を超える場合（0.6ヶ月以上、1ヶ月、1.1ヶ月など）は必ず「交渉可（negotiable）」または「削除推奨（cut）」としてください。
+       - 特に1ヶ月を超える場合（1.1ヶ月、1.5ヶ月など）は「交渉可」または「削除推奨」として、適正額は0.5ヶ月分以下に設定してください。
        - 0.5ヶ月の場合でも、総評で「0円にできる可能性」を示唆してください。
 
     【出力JSON形式】
@@ -70,7 +72,7 @@ export async function POST(req: Request) {
       "total_fair": 適正合計,
       "discount_amount": 差額,
       "pro_review": { 
-        "content": "この物件固有の初期費用に関する鋭い指摘と、次に取るべき具体的なベストアクションを一言で。" 
+        "content": "総評は以下のフォーマットで出力してください：\n\n【総括】（一行で、この物件の初期費用についての結論を一言で太文字で表現）\n\n【最善の行動】（簡潔に、次に取るべき行動を2-3行で）\n\n【ポイント】\n・削減可能な項目を簡潔に箇条書き（各項目1行）\n・交渉のポイントを簡潔に箇条書き\n・注意点があれば簡潔に箇条書き\n\n総評は簡潔で分かりやすく、借主がすぐに行動できる内容にしてください。説明文や指示文は一切含めないでください。"
       },
       "risk_score": 0〜100の数値（払いすぎ危険度）
     }
@@ -87,9 +89,16 @@ export async function POST(req: Request) {
     const responseText = result.response.text();
     const json = JSON.parse(responseText);
     
-    // 総評フォーマットの整形（AIの出力＋固定文言）
+    // 総評フォーマットの整形（AIの出力から説明文を削除）
     if (json.pro_review && json.pro_review.content) {
-      json.pro_review.content = `${json.pro_review.content}\n\n今回の診断結果はあくまで『書面上で分かる範囲』の減額です。下の「正確な詳細をチェックする」から確認可能です。`;
+      let aiContent = json.pro_review.content.trim();
+      // 不要な説明文を削除
+      aiContent = aiContent.replace(/この物件の初期費用について[^\n]*\n?/g, '');
+      aiContent = aiContent.replace(/以下の点を必ず含めて詳細に分析してください[^\n]*\n?/g, '');
+      aiContent = aiContent.replace(/総評は[^\n]*\n?/g, '');
+      aiContent = aiContent.replace(/説明文や指示文は一切含めないでください[^\n]*\n?/g, '');
+      aiContent = aiContent.trim();
+      json.pro_review.content = `${aiContent}\n\n※今回の診断結果はあくまで『書面上で分かる範囲』の減額です。より詳細な精査や交渉サポートが必要な場合は、下の「詳細をチェックする」からプロに相談できます。`;
     }
 
     return NextResponse.json({ result: json });

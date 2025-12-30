@@ -47,32 +47,40 @@ const compressImage = async (file: File): Promise<File> => {
   });
 };
 
-// --- 危険度ゲージコンポーネント ---
+// --- 危険度ゲージコンポーネント（バー型） ---
 const RiskGauge = ({ score }: { score: number }) => {
-  const radius = 30;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (score / 100) * (circumference / 2);
+  let barColor = "bg-gradient-to-r from-green-400 to-green-600";
+  let textColor = "text-green-600";
+  let bgColor = "bg-green-50";
   
-  let color = "text-green-500";
-  if (score > 40) color = "text-yellow-500";
-  if (score > 70) color = "text-red-500";
+  if (score > 40) {
+    barColor = "bg-gradient-to-r from-yellow-400 to-yellow-600";
+    textColor = "text-yellow-600";
+    bgColor = "bg-yellow-50";
+  }
+  if (score > 70) {
+    barColor = "bg-gradient-to-r from-red-400 to-red-600";
+    textColor = "text-red-600";
+    bgColor = "bg-red-50";
+  }
 
   return (
-    <div className="relative w-24 h-12 flex items-end justify-center overflow-hidden">
-      <svg className="w-24 h-24 absolute top-0 transform rotate-[180deg]">
-        <circle cx="48" cy="48" r="30" fill="none" stroke="#e2e8f0" strokeWidth="6" />
-        <circle
-          cx="48" cy="48" r="30" fill="none" stroke="currentColor" strokeWidth="6"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          className={`transition-all duration-1000 ease-out ${color}`}
-          style={{ transformOrigin: "center" }}
-        />
-      </svg>
-      <div className="relative z-10 text-center -mb-1">
-        <span className={`text-xl font-black ${color}`}>{score}</span>
-        <span className="text-[10px] text-slate-400">/100</span>
+    <div className="w-full">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm font-bold text-slate-700">払いすぎ危険度</span>
+        <span className={`text-2xl font-black ${textColor}`}>{score}<span className="text-sm text-slate-400">/100</span></span>
+      </div>
+      <div className="relative h-8 bg-slate-100 rounded-full overflow-hidden shadow-inner">
+        {/* 背景グラデーション */}
+        <div className={`absolute inset-0 ${bgColor} opacity-30`}></div>
+        {/* プログレスバー */}
+        <div 
+          className={`h-full ${barColor} rounded-full transition-all duration-1000 ease-out shadow-lg relative overflow-hidden`}
+          style={{ width: `${score}%` }}
+        >
+          {/* 光沢エフェクト */}
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+        </div>
       </div>
     </div>
   );
@@ -164,6 +172,7 @@ export default function Home() {
       setLoadingStep("完了");
       setTimeout(() => {
         setResult(data.result);
+        setShareId(null); // 新しい結果なので共有IDをリセット
         setIsLoading(false);
         setCurrentView("result");
         // ★ここを修正：スマホでも確実に一番上にスクロールさせる
@@ -188,6 +197,31 @@ export default function Home() {
   };
 
   const formatYen = (num: number) => new Intl.NumberFormat('ja-JP').format(num);
+  const [shareId, setShareId] = useState<string | null>(null);
+  const [isCreatingShare, setIsCreatingShare] = useState(false);
+
+  // 共有用リンクを作成
+  const createShareLink = async () => {
+    if (!result || isCreatingShare) return;
+    setIsCreatingShare(true);
+    try {
+      const res = await fetch("/api/share", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ result }),
+      });
+      if (!res.ok) throw new Error("共有リンクの作成に失敗しました");
+      const data = await res.json();
+      setShareId(data.shareId);
+      return data.shareId;
+    } catch (error) {
+      console.error("Share creation error:", error);
+      alert("共有リンクの作成に失敗しました");
+      return null;
+    } finally {
+      setIsCreatingShare(false);
+    }
+  };
 
   // ★修正：シェア用テキスト（物件名なし、拡散推奨）
   const generateShareText = () => {
@@ -199,14 +233,47 @@ export default function Home() {
            `削減目安：-¥${formatYen(result.discount_amount)}\n\n` +
            `これから部屋探しする人は要チェック！👇\n`;
   };
-  const shareUrl = typeof window !== 'undefined' ? window.location.href : "";
 
-  const handleShareLine = () => window.open(`https://line.me/R/msg/text/?${encodeURIComponent(generateShareText() + shareUrl)}`, '_blank');
-  const handleShareX = () => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(generateShareText())}&url=${encodeURIComponent(shareUrl)}&hashtags=賃貸,初期費用`, '_blank');
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(generateShareText() + shareUrl);
-    setIsCopied(true);
-    setTimeout(() => setIsCopied(false), 2000);
+  const getShareUrl = () => {
+    if (shareId) {
+      return typeof window !== 'undefined' ? `${window.location.origin}/share/${shareId}` : "";
+    }
+    return "";
+  };
+
+  const handleShareLine = async () => {
+    let url = getShareUrl();
+    if (!url) {
+      const id = await createShareLink();
+      if (id) url = typeof window !== 'undefined' ? `${window.location.origin}/share/${id}` : "";
+    }
+    if (url) {
+      window.open(`https://line.me/R/msg/text/?${encodeURIComponent(generateShareText() + url)}`, '_blank');
+    }
+  };
+
+  const handleShareX = async () => {
+    let url = getShareUrl();
+    if (!url) {
+      const id = await createShareLink();
+      if (id) url = typeof window !== 'undefined' ? `${window.location.origin}/share/${id}` : "";
+    }
+    if (url) {
+      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(generateShareText())}&url=${encodeURIComponent(url)}&hashtags=賃貸,初期費用`, '_blank');
+    }
+  };
+
+  const handleCopyLink = async () => {
+    let url = getShareUrl();
+    if (!url) {
+      const id = await createShareLink();
+      if (id) url = typeof window !== 'undefined' ? `${window.location.origin}/share/${id}` : "";
+    }
+    if (url) {
+      navigator.clipboard.writeText(generateShareText() + url);
+      setIsCopied(true);
+      setTimeout(() => setIsCopied(false), 2000);
+    }
   };
   
   const handleDownloadImage = async () => {
@@ -308,23 +375,29 @@ export default function Home() {
           
           <div ref={resultRef} className="bg-white p-8 rounded-3xl border border-slate-200 shadow-2xl relative overflow-hidden mb-8">
             {/* Header */}
-            <div className="border-b border-slate-100 pb-6 mb-6 flex justify-between items-start gap-4">
-              <div className="flex-1">
-                <p className="text-xs text-slate-400 font-bold mb-1 ml-1">物件名</p>
-                <h2 className="text-2xl md:text-3xl font-black text-slate-900 leading-tight mb-2">
-                  {result.property_name && result.property_name !== "不明" ? result.property_name : "物件名入力なし"}
-                </h2>
-                <span className="text-slate-500 text-sm font-bold bg-slate-100 px-2 py-0.5 rounded">{result.room_number !== "不明" ? result.room_number : ""}</span>
+            <div className="border-b border-slate-100 pb-8 mb-8">
+              {/* 物件名と号室（中央配置） */}
+              <div className="text-center mb-6">
+                <div className="flex items-baseline justify-center gap-3 flex-wrap">
+                  <h2 className="text-2xl md:text-3xl font-black text-slate-900 leading-tight">
+                    {result.property_name && result.property_name !== "不明" ? result.property_name : "物件名入力なし"}
+                  </h2>
+                  {result.room_number !== "不明" && (
+                    <span className="text-lg md:text-xl text-slate-500 font-bold bg-slate-100 px-3 py-1 rounded">
+                      {result.room_number}
+                    </span>
+                  )}
+                </div>
               </div>
-              <div className="flex flex-col items-center">
-                <span className="text-[10px] text-slate-400 mb-1">払いすぎ危険度</span>
+              {/* 危険度ゲージ */}
+              <div className="max-w-md mx-auto">
                 <RiskGauge score={result.risk_score} />
               </div>
             </div>
 
             {/* Savings Impact: 「浮いたお金」を削除 */}
             <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl p-6 mb-8 text-center shadow-lg relative overflow-hidden">
-              <p className="text-blue-100 text-xs font-bold mb-1 tracking-widest uppercase">Estimated Reduction</p>
+              <p className="text-blue-100 text-sm font-bold mb-2">削減可能額</p>
               <div className="text-4xl md:text-5xl font-black mb-3 tracking-tight">
                 -{formatYen(result.discount_amount)}<span className="text-lg font-medium">円</span>
               </div>
@@ -333,14 +406,6 @@ export default function Home() {
                 <span>→</span>
                 <span className="font-bold">適正: ¥{formatYen(result.total_fair)}</span>
               </div>
-            </div>
-
-            {/* AI Review */}
-            <div className="mb-8 bg-blue-50 rounded-xl p-5 border-l-4 border-blue-500 text-slate-700 text-sm leading-relaxed">
-              <h3 className="font-bold text-blue-700 mb-2 flex items-center gap-2">🤖 AIエージェントの総評</h3>
-              {result.pro_review.content.split('\n').map((line, i) => (
-                <p key={i} className="mb-1 last:mb-0">{line}</p>
-              ))}
             </div>
 
             {/* Items List */}
@@ -383,11 +448,108 @@ export default function Home() {
             <button onClick={handleDownloadImage} className="col-span-2 py-3 rounded-xl font-bold bg-slate-800 text-white text-sm hover:bg-slate-700 flex items-center justify-center gap-2 shadow-md">
               <span>💾</span> 画像を保存
             </button>
-            <button onClick={handleShareX} className="bg-black text-white py-3 rounded-xl font-bold text-sm shadow-md">Xでシェア</button>
-            <button onClick={handleShareLine} className="bg-[#06C755] text-white py-3 rounded-xl font-bold text-sm shadow-md">LINEでシェア</button>
-            <button onClick={handleCopyLink} className="col-span-2 bg-slate-100 text-slate-600 font-bold text-sm py-3 rounded-xl hover:bg-slate-200 border border-slate-200 flex items-center justify-center gap-2">
-              {isCopied ? "✨ コピーしました！" : "🔗 共有用リンクをコピー"}
+            <button 
+              onClick={handleShareX} 
+              disabled={isCreatingShare}
+              className="bg-black text-white py-3 rounded-xl font-bold text-sm shadow-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isCreatingShare ? "⏳" : "X"} {isCreatingShare ? "準備中..." : "Xでシェア"}
             </button>
+            <button 
+              onClick={handleShareLine} 
+              disabled={isCreatingShare}
+              className="bg-[#06C755] text-white py-3 rounded-xl font-bold text-sm shadow-md hover:bg-[#05b34c] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {isCreatingShare ? "⏳" : "📱"} {isCreatingShare ? "準備中..." : "LINEでシェア"}
+            </button>
+            <button 
+              onClick={handleCopyLink} 
+              disabled={isCreatingShare}
+              className="col-span-2 bg-slate-100 text-slate-600 font-bold text-sm py-3 rounded-xl hover:bg-slate-200 border border-slate-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isCreatingShare ? "⏳ 準備中..." : isCopied ? "✨ コピーしました！" : "🔗 共有用リンクをコピー"}
+            </button>
+            {shareId && (
+              <div className="col-span-2 bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-700">
+                <p className="font-bold mb-1">共有リンクが作成されました</p>
+                <p className="text-blue-600 break-all">{typeof window !== 'undefined' ? `${window.location.origin}/share/${shareId}` : ""}</p>
+              </div>
+            )}
+          </div>
+
+          {/* AI Review */}
+          <div className="bg-blue-50 rounded-xl p-5 border-l-4 border-blue-500 text-slate-700 text-sm leading-relaxed mb-8">
+            <h3 className="font-bold text-blue-700 mb-3 flex items-center gap-2">🤖 AIエージェントの総評</h3>
+            {(() => {
+              // 不要な説明文を削除
+              let content = result.pro_review.content.trim();
+              // 説明文的なパターンを削除
+              content = content.replace(/この物件の初期費用について[^\n]*\n?/g, '');
+              content = content.replace(/以下の点を必ず含めて詳細に分析してください[^\n]*\n?/g, '');
+              content = content.replace(/総評は[^\n]*\n?/g, '');
+              content = content.replace(/説明文や指示文は一切含めないでください[^\n]*\n?/g, '');
+              
+              const lines = content.split('\n').filter(line => {
+                const trimmed = line.trim();
+                return trimmed && 
+                       !trimmed.match(/^【出力JSON形式】|^Markdown|^savings_magic/) &&
+                       !trimmed.match(/この物件の初期費用について/) &&
+                       !trimmed.match(/以下の点を必ず含めて/) &&
+                       !trimmed.match(/総評は[^\n]*フォーマット/);
+              });
+              
+              if (lines.length === 0) {
+                return <p className="text-slate-600">総評を読み込み中...</p>;
+              }
+              
+              // 【総括】見出しを探して、その次の行を総括として扱う
+              let summaryIndex = -1;
+              let summary = '';
+              
+              for (let i = 0; i < lines.length; i++) {
+                if (lines[i].trim().match(/^【総括】/)) {
+                  if (i + 1 < lines.length) {
+                    summaryIndex = i;
+                    summary = lines[i + 1].trim();
+                    break;
+                  }
+                }
+              }
+              
+              // 【総括】が見つからない場合は、最初の行を総括として扱う
+              if (summaryIndex === -1 && lines.length > 0) {
+                summary = lines[0].trim().replace(/^【総括】\s*/, '').replace(/^総括[：:]\s*/, '');
+                summaryIndex = -1; // 最初の行を使うのでスキップ
+              }
+              
+              const restLines = summaryIndex >= 0 
+                ? lines.slice(summaryIndex + 2) // 【総括】とその次の行をスキップ
+                : lines.slice(1); // 最初の行をスキップ
+              
+              return (
+                <>
+                  {summary && (
+                    <p className="font-black text-blue-700 text-base mb-3">{summary}</p>
+                  )}
+                  {restLines.map((line, i) => {
+                    const trimmed = line.trim();
+                    // 【最善の行動】【ポイント】などの見出しは削除（見出し自体は表示しない）
+                    if (trimmed.match(/^【.*】$/)) {
+                      return null;
+                    }
+                    // 箇条書き（・で始まる行）はそのまま
+                    if (trimmed.startsWith('・') || trimmed.startsWith('-') || trimmed.match(/^\d+\./)) {
+                      return <p key={i} className="mb-1.5 ml-2">{trimmed}</p>;
+                    }
+                    // 空行はスキップ
+                    if (!trimmed) {
+                      return null;
+                    }
+                    return <p key={i} className="mb-2">{trimmed}</p>;
+                  }).filter(Boolean)}
+                </>
+              );
+            })()}
           </div>
 
           {/* CV Section */}
@@ -398,24 +560,44 @@ export default function Home() {
                   <h3 className="text-lg font-bold text-slate-900 mb-2">
                     AIの診断結果を<br/><span className="text-green-600">プロが無料で精査</span>します
                   </h3>
-                  <div className="flex flex-wrap gap-2 text-[10px] font-bold text-slate-500 mb-2">
-                    <span className="bg-slate-50 px-2 py-1 rounded border border-slate-100 flex items-center gap-1">⚡ 年中無休</span>
-                    <span className="bg-slate-50 px-2 py-1 rounded border border-slate-100 flex items-center gap-1">🏆 実績800件</span>
-                    <span className="bg-slate-50 px-2 py-1 rounded border border-slate-100 flex items-center gap-1">📱 来店不要</span>
-                  </div>
                   <p className="text-[10px] text-slate-400">
                     保存した画像を送るだけで、最安値プランをご提案。
                   </p>
                 </div>
                 <a 
-                  href="https://line.me/R/ti/p/@your_id" 
+                  href={process.env.NEXT_PUBLIC_LINE_URL || "https://line.me/R/ti/p/@your_id"} 
                   target="_blank" 
                   rel="noopener noreferrer" 
-                  className="flex-shrink-0 bg-[#06C755] hover:bg-[#05b34c] text-white font-bold py-3 px-6 rounded-full shadow-lg shadow-green-200 transition-transform hover:scale-105 flex items-center gap-2"
+                  className="flex-shrink-0 bg-gradient-to-r from-[#06C755] to-[#05b34c] hover:from-[#05b34c] hover:to-[#04a042] text-white font-bold py-5 px-10 rounded-2xl shadow-2xl shadow-green-300/50 transition-all hover:scale-105 hover:shadow-green-400/60 flex items-center gap-2 text-lg relative overflow-hidden group"
                 >
-                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5"><path d="M12 2C6.48 2 2 5.56 2 10.1c0 2.45 1.3 4.63 3.4 6.1-.15.8-.5 2.15-.56 2.47-.05.24.1.47.34.47.1 0 .2-.03.27-.08.05-.03 2.6-1.73 3.63-2.45.62.17 1.28.26 1.95.26 5.52 0 10-3.56 10-8.1S17.52 2 12 2z"/></svg>
-                  <span>詳細をチェック</span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                  <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 relative z-10"><path d="M12 2C6.48 2 2 5.56 2 10.1c0 2.45 1.3 4.63 3.4 6.1-.15.8-.5 2.15-.56 2.47-.05.24.1.47.34.47.1 0 .2-.03.27-.08.05-.03 2.6-1.73 3.63-2.45.62.17 1.28.26 1.95.26 5.52 0 10-3.56 10-8.1S17.52 2 12 2z"/></svg>
+                  <span className="relative z-10">詳細を今すぐ確認</span>
                 </a>
+             </div>
+             <div className="relative z-10 mt-6 pt-6 border-t border-slate-200">
+                <div className="flex flex-wrap gap-3 text-xs justify-center md:justify-start">
+                  <div className="flex items-center gap-1.5 text-slate-700">
+                    <span className="text-base">📅</span>
+                    <span className="font-bold">365日対応</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-slate-700">
+                    <span className="text-base">🏆</span>
+                    <span className="font-bold">実績800件以上</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-slate-700">
+                    <span className="text-base">📱</span>
+                    <span className="font-bold">来店不要</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-slate-700">
+                    <span className="text-base">💰</span>
+                    <span className="font-bold">仲介手数料最大無料</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-slate-700">
+                    <span className="text-base">✅</span>
+                    <span className="font-bold">不要オプション一切無し</span>
+                  </div>
+                </div>
              </div>
           </div>
 
