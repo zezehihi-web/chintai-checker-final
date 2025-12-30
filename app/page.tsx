@@ -49,7 +49,7 @@ const compressImage = async (file: File): Promise<File> => {
 
 // --- 危険度ゲージコンポーネント ---
 const RiskGauge = ({ score }: { score: number }) => {
-  const radius = 30; // 少し小さくしました
+  const radius = 30;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * (circumference / 2);
   
@@ -166,7 +166,8 @@ export default function Home() {
         setResult(data.result);
         setIsLoading(false);
         setCurrentView("result");
-        window.scrollTo(0, 0);
+        // ★ここを修正：スマホでも確実に一番上にスクロールさせる
+        window.scrollTo({ top: 0, behavior: 'instant' });
       }, 600);
     } catch (error: any) {
       if (timerRef.current) clearTimeout(timerRef.current);
@@ -182,14 +183,21 @@ export default function Home() {
     setPlanPreview(null);
     setResult(null);
     setCurrentView("top");
-    window.scrollTo(0, 0);
+    // リセット時も一番上へ
+    window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
   const formatYen = (num: number) => new Intl.NumberFormat('ja-JP').format(num);
 
+  // ★修正：シェア用テキスト（物件名なし、拡散推奨）
   const generateShareText = () => {
     if (!result) return "";
-    return `【賃貸初期費用診断】\n払いすぎ危険度：${result.risk_score}%\n\n提示額：¥${formatYen(result.total_original)}\n適正額：¥${formatYen(result.total_fair)}\n────────────\n削減目安：-¥${formatYen(result.discount_amount)}\n\n👇 あなたも診断してみる\n`;
+    return `【賃貸初期費用診断】\n` +
+           `提示額：¥${formatYen(result.total_original)}\n` +
+           `適正額：¥${formatYen(result.total_fair)}\n` +
+           `⬇️ ⬇️ ⬇️\n` +
+           `削減目安：-¥${formatYen(result.discount_amount)}\n\n` +
+           `これから部屋探しする人は要チェック！👇\n`;
   };
   const shareUrl = typeof window !== 'undefined' ? window.location.href : "";
 
@@ -302,10 +310,8 @@ export default function Home() {
             {/* Header */}
             <div className="border-b border-slate-100 pb-6 mb-6 flex justify-between items-start gap-4">
               <div className="flex-1">
-                {/* 物件名ラベルを追加 */}
                 <p className="text-xs text-slate-400 font-bold mb-1 ml-1">物件名</p>
                 <h2 className="text-2xl md:text-3xl font-black text-slate-900 leading-tight mb-2">
-                  {/* 不明時は「入力なし」と表示 */}
                   {result.property_name && result.property_name !== "不明" ? result.property_name : "物件名入力なし"}
                 </h2>
                 <span className="text-slate-500 text-sm font-bold bg-slate-100 px-2 py-0.5 rounded">{result.room_number !== "不明" ? result.room_number : ""}</span>
@@ -316,7 +322,7 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Savings Impact */}
+            {/* Savings Impact: 「浮いたお金」を削除 */}
             <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl p-6 mb-8 text-center shadow-lg relative overflow-hidden">
               <p className="text-blue-100 text-xs font-bold mb-1 tracking-widest uppercase">Estimated Reduction</p>
               <div className="text-4xl md:text-5xl font-black mb-3 tracking-tight">
@@ -372,7 +378,7 @@ export default function Home() {
             )}
           </div>
 
-          {/* Action Buttons: 共有URLコピーを追加 */}
+          {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-4 mb-8">
             <button onClick={handleDownloadImage} className="col-span-2 py-3 rounded-xl font-bold bg-slate-800 text-white text-sm hover:bg-slate-700 flex items-center justify-center gap-2 shadow-md">
               <span>💾</span> 画像を保存
@@ -384,18 +390,14 @@ export default function Home() {
             </button>
           </div>
 
-          {/* CV Section: 横長でスタイリッシュに */}
+          {/* CV Section */}
           <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden">
-             {/* 背景装飾 */}
              <div className="absolute top-0 right-0 w-32 h-32 bg-green-50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
-
              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="text-left flex-1">
                   <h3 className="text-lg font-bold text-slate-900 mb-2">
                     AIの診断結果を<br/><span className="text-green-600">プロが無料で精査</span>します
                   </h3>
-                  
-                  {/* コンパクトな実績表示 */}
                   <div className="flex flex-wrap gap-2 text-[10px] font-bold text-slate-500 mb-2">
                     <span className="bg-slate-50 px-2 py-1 rounded border border-slate-100 flex items-center gap-1">⚡ 年中無休</span>
                     <span className="bg-slate-50 px-2 py-1 rounded border border-slate-100 flex items-center gap-1">🏆 実績800件</span>
@@ -405,8 +407,6 @@ export default function Home() {
                     保存した画像を送るだけで、最安値プランをご提案。
                   </p>
                 </div>
-
-                {/* スタイリッシュな横長LINEボタン */}
                 <a 
                   href="https://line.me/R/ti/p/@your_id" 
                   target="_blank" 
