@@ -47,39 +47,130 @@ const compressImage = async (file: File): Promise<File> => {
   });
 };
 
-// --- 危険度ゲージコンポーネント（バー型） ---
+// --- 危険度ゲージコンポーネント（お金のイメージ、細いデザイン） ---
 const RiskGauge = ({ score }: { score: number }) => {
-  let barColor = "bg-gradient-to-r from-green-400 to-green-600";
-  let textColor = "text-green-600";
-  let bgColor = "bg-green-50";
+  // お金のイメージ：ゴールド/金色のグラデーション
+  const goldColors = {
+    light: "#fbbf24", // amber-400
+    mid: "#f59e0b",   // amber-500
+    dark: "#d97706",  // amber-600
+    darker: "#b45309" // amber-700
+  };
+  
+  let textColor = "text-amber-700";
+  let coinColor = goldColors;
   
   if (score > 40) {
-    barColor = "bg-gradient-to-r from-yellow-400 to-yellow-600";
-    textColor = "text-yellow-600";
-    bgColor = "bg-yellow-50";
+    // 警告：オレンジゴールド
+    coinColor = {
+      light: "#fb923c", // orange-400
+      mid: "#f97316",   // orange-500
+      dark: "#ea580c",  // orange-600
+      darker: "#c2410c" // orange-700
+    };
+    textColor = "text-orange-700";
   }
   if (score > 70) {
-    barColor = "bg-gradient-to-r from-red-400 to-red-600";
-    textColor = "text-red-600";
-    bgColor = "bg-red-50";
+    // 危険：赤銅色
+    coinColor = {
+      light: "#f87171", // red-400
+      mid: "#ef4444",   // red-500
+      dark: "#dc2626",  // red-600
+      darker: "#b91c1c" // red-700
+    };
+    textColor = "text-red-700";
   }
 
   return (
-    <div className="w-full">
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-bold text-slate-700">払いすぎ危険度</span>
-        <span className={`text-2xl font-black ${textColor}`}>{score}<span className="text-sm text-slate-400">/100</span></span>
+    <div className="w-full animate-fade-in-up">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-sm font-bold text-slate-700 tracking-wide uppercase">払いすぎ危険度</span>
+        <div className="flex items-baseline gap-1">
+          <span className={`text-3xl font-black ${textColor} drop-shadow-md`} style={{ 
+            textShadow: `0 2px 8px ${coinColor.mid}40`
+          }}>{score}</span>
+          <span className="text-sm text-slate-400 font-medium">/100</span>
+        </div>
       </div>
-      <div className="relative h-8 bg-slate-100 rounded-full overflow-hidden shadow-inner">
-        {/* 背景グラデーション */}
-        <div className={`absolute inset-0 ${bgColor} opacity-30`}></div>
-        {/* プログレスバー */}
-        <div 
-          className={`h-full ${barColor} rounded-full transition-all duration-1000 ease-out shadow-lg relative overflow-hidden`}
-          style={{ width: `${score}%` }}
-        >
-          {/* 光沢エフェクト */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+      
+      {/* メインゲージコンテナ */}
+      <div className="relative">
+        {/* 背景の光る効果 */}
+        <div className="absolute inset-0 bg-gradient-to-r from-amber-100/30 via-yellow-100/20 to-amber-100/30 rounded-full blur-xl -z-10" style={{ height: '150%', top: '-25%' }}></div>
+        
+        {/* ゲージ本体（細く） */}
+        <div className="relative h-6 bg-gradient-to-br from-slate-200 to-slate-300 rounded-full overflow-hidden shadow-inner border border-slate-300/50">
+          {/* 背景パターン（コインのイメージ） */}
+          <div className="absolute inset-0 opacity-10" style={{
+            backgroundImage: 'radial-gradient(circle at 50% 50%, rgba(0,0,0,0.1) 1px, transparent 1px)',
+            backgroundSize: '12px 12px'
+          }}></div>
+          
+          {/* プログレスバー（ゴールド/金色） */}
+          <div 
+            className="h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden"
+            style={{ 
+              width: `${score}%`,
+              background: `linear-gradient(90deg, ${coinColor.darker} 0%, ${coinColor.dark} 25%, ${coinColor.mid} 50%, ${coinColor.light} 75%, ${coinColor.mid} 100%)`,
+              boxShadow: `
+                inset 0 1px 2px rgba(255,255,255,0.3),
+                inset 0 -1px 2px rgba(0,0,0,0.2),
+                0 0 12px ${coinColor.mid}60,
+                0 0 6px ${coinColor.light}40
+              `
+            }}
+          >
+            {/* メタリックな光沢 */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/50 via-transparent to-black/20"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
+            
+            {/* コインのようなハイライト */}
+            <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-white/60 via-white/20 to-transparent"></div>
+            <div className="absolute top-1/2 left-0 right-0 h-1/2 bg-gradient-to-b from-transparent via-black/10 to-black/20"></div>
+            
+            {/* コインの縁のような効果 */}
+            <div className="absolute top-0 left-0 bottom-0 w-1 bg-gradient-to-r from-white/40 to-transparent"></div>
+            <div className="absolute top-0 right-0 bottom-0 w-1 bg-gradient-to-l from-white/40 to-transparent"></div>
+          </div>
+          
+          {/* 数値表示（コインの上に） */}
+          {score > 20 && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <span className="text-xs font-black text-white drop-shadow-lg" style={{
+                textShadow: '0 1px 3px rgba(0,0,0,0.5), 0 0 4px rgba(0,0,0,0.3)'
+              }}>{score}%</span>
+            </div>
+          )}
+        </div>
+        
+        {/* 下部のコインインジケーター */}
+        <div className="mt-3 flex justify-between items-center">
+          <span className="text-xs text-slate-500 font-medium">安全</span>
+          <div className="flex gap-1.5">
+            {Array.from({ length: 5 }).map((_, i) => {
+              const isActive = i * 25 < score;
+              return (
+                <div
+                  key={i}
+                  className="relative"
+                  style={{
+                    width: '8px',
+                    height: '8px',
+                    borderRadius: '50%',
+                    backgroundColor: isActive ? coinColor.mid : '#e2e8f0',
+                    boxShadow: isActive 
+                      ? `0 0 8px ${coinColor.mid}60, inset 0 1px 2px rgba(255,255,255,0.3), inset 0 -1px 2px rgba(0,0,0,0.2)`
+                      : 'inset 0 1px 2px rgba(0,0,0,0.1)',
+                  }}
+                >
+                  {isActive && (
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/40 to-transparent rounded-full"></div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <span className="text-xs text-slate-500 font-medium">危険</span>
         </div>
       </div>
     </div>
@@ -248,7 +339,9 @@ export default function Home() {
       if (id) url = typeof window !== 'undefined' ? `${window.location.origin}/share/${id}` : "";
     }
     if (url) {
-      window.open(`https://line.me/R/msg/text/?${encodeURIComponent(generateShareText() + url)}`, '_blank');
+      // LINE URLスキームでテキストとURLを自動埋め込み
+      const shareText = generateShareText() + url;
+      window.open(`https://line.me/R/msg/text/?${encodeURIComponent(shareText)}`, '_blank');
     }
   };
 
@@ -289,13 +382,25 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-600 font-sans pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/40 text-slate-600 font-sans pb-20 relative overflow-hidden">
+      {/* 背景装飾 */}
+      <div className="fixed inset-0 -z-10">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-blue-200/20 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-indigo-200/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }}></div>
+      </div>
       
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
+      <header className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border-b border-slate-700 sticky top-0 z-50 shadow-lg">
         <div className="max-w-3xl mx-auto px-6 py-4 flex justify-center items-center">
-          <h1 className="text-lg md:text-xl font-bold text-slate-800 tracking-tight">
-            賃貸初期費用<span className="text-blue-600">診断</span>
-          </h1>
+          <button
+            onClick={() => {
+              setCurrentView("top");
+              handleReset();
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            className="text-lg md:text-xl font-black text-white tracking-tight hover:text-blue-300 transition-colors cursor-pointer"
+          >
+            賃貸初期費用<span className="text-blue-400">診断</span>
+          </button>
         </div>
       </header>
 
@@ -373,17 +478,21 @@ export default function Home() {
       {currentView === "result" && result && (
         <div className="max-w-3xl mx-auto p-6 md:p-10 animate-fade-in-up">
           
-          <div ref={resultRef} className="bg-white p-8 rounded-3xl border border-slate-200 shadow-2xl relative overflow-hidden mb-8">
+          <div ref={resultRef} className="bg-white p-8 rounded-3xl border border-slate-200 shadow-2xl relative overflow-hidden mb-8 animate-scale-in">
             {/* Header */}
-            <div className="border-b border-slate-100 pb-8 mb-8">
+            <div className="border-b border-slate-100 pb-8 mb-8 animate-fade-in-up">
+              {/* 物件名ラベル */}
+              <div className="text-center mb-3">
+                <p className="text-xs text-slate-400 font-bold tracking-wider uppercase mb-2">物件名</p>
+              </div>
               {/* 物件名と号室（中央配置） */}
               <div className="text-center mb-6">
                 <div className="flex items-baseline justify-center gap-3 flex-wrap">
-                  <h2 className="text-2xl md:text-3xl font-black text-slate-900 leading-tight">
+                  <h2 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight tracking-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
                     {result.property_name && result.property_name !== "不明" ? result.property_name : "物件名入力なし"}
                   </h2>
                   {result.room_number !== "不明" && (
-                    <span className="text-lg md:text-xl text-slate-500 font-bold bg-slate-100 px-3 py-1 rounded">
+                    <span className="text-xl md:text-2xl text-slate-500 font-black">
                       {result.room_number}
                     </span>
                   )}
@@ -396,7 +505,7 @@ export default function Home() {
             </div>
 
             {/* Savings Impact: 「浮いたお金」を削除 */}
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl p-6 mb-8 text-center shadow-lg relative overflow-hidden">
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl p-6 mb-8 text-center shadow-lg relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
               <p className="text-blue-100 text-sm font-bold mb-2">削減可能額</p>
               <div className="text-4xl md:text-5xl font-black mb-3 tracking-tight">
                 -{formatYen(result.discount_amount)}<span className="text-lg font-medium">円</span>
@@ -411,7 +520,7 @@ export default function Home() {
             {/* Items List */}
             <div className="space-y-3 mb-4">
               {result.items.filter(i => i.status !== 'fair').map((item, index) => (
-                <div key={index} className="bg-red-50 border border-red-100 rounded-xl p-4">
+                <div key={index} className="bg-red-50 border border-red-100 rounded-xl p-4 animate-fade-in-up" style={{ animationDelay: `${0.2 + index * 0.05}s` }}>
                   <div className="flex justify-between items-center mb-1">
                     <span className="font-bold text-slate-800">{item.name}</span>
                     <span className="text-[10px] font-bold text-white bg-red-500 px-2 py-0.5 rounded">
@@ -451,9 +560,9 @@ export default function Home() {
             <button 
               onClick={handleShareX} 
               disabled={isCreatingShare}
-              className="bg-black text-white py-3 rounded-xl font-bold text-sm shadow-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="bg-black text-white py-3 rounded-xl font-bold text-sm shadow-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 animate-fade-in-up"
             >
-              {isCreatingShare ? "⏳" : "X"} {isCreatingShare ? "準備中..." : "Xでシェア"}
+              {isCreatingShare ? "⏳ 準備中..." : "Xでシェア"}
             </button>
             <button 
               onClick={handleShareLine} 
@@ -478,7 +587,7 @@ export default function Home() {
           </div>
 
           {/* AI Review */}
-          <div className="bg-blue-50 rounded-xl p-5 border-l-4 border-blue-500 text-slate-700 text-sm leading-relaxed mb-8">
+          <div className="bg-blue-50 rounded-xl p-5 border-l-4 border-blue-500 text-slate-700 text-sm leading-relaxed mb-8 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
             <h3 className="font-bold text-blue-700 mb-3 flex items-center gap-2">🤖 AIエージェントの総評</h3>
             {(() => {
               // 不要な説明文を削除
@@ -553,7 +662,7 @@ export default function Home() {
           </div>
 
           {/* CV Section */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
              <div className="absolute top-0 right-0 w-32 h-32 bg-green-50 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="text-left flex-1">
@@ -561,7 +670,7 @@ export default function Home() {
                     AIの診断結果を<br/><span className="text-green-600">プロが無料で精査</span>します
                   </h3>
                   <p className="text-[10px] text-slate-400">
-                    保存した画像を送るだけで、最安値プランをご提案。
+                    リンクをコピーして送るだけで、最安値プランをご提案。
                   </p>
                 </div>
                 <a 
