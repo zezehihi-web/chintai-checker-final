@@ -476,8 +476,16 @@ const FortuneResult = ({ result }: { result: AnalysisResult }) => {
           </div>
         )}
 
-        {/* 部屋探しへの導線 */}
+        {/* 注意書き */}
         <div className="mt-8 text-center animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
+          <p className="text-purple-300/60 text-xs mb-6">
+            ※今回の診断結果はあくまで画像から分かる範囲でのAI占い結果です。<br/>
+            エンタメとしてお楽しみください🔮✨
+          </p>
+        </div>
+
+        {/* 部屋探しへの導線 */}
+        <div className="text-center animate-fade-in-up" style={{ animationDelay: '0.9s' }}>
           <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-sm rounded-2xl p-6 border border-green-400/30">
             <p className="text-green-300 text-sm mb-4">
               🏠 運命の物件を見つけに行きませんか？
