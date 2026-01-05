@@ -156,7 +156,7 @@ export async function POST(req: Request) {
 
     parts.push({ text: prompt });
 
-    const primaryModel = process.env.GEMINI_MODEL_NAME || "gemini-2.5-pro";
+    const primaryModel = process.env.GEMINI_MODEL_NAME || "gemini-2.5-flash";
     
     console.log("AI解析開始... モデル:", primaryModel);
     
