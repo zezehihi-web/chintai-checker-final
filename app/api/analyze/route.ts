@@ -156,8 +156,7 @@ export async function POST(req: Request) {
 
     parts.push({ text: prompt });
 
-    // テスト: Gemini 2.5 Pro を使用
-    const primaryModel = process.env.GEMINI_MODEL_NAME || "gemini-2.5-pro";
+    const primaryModel = process.env.GEMINI_MODEL_NAME || "gemini-2.5-flash";
     
     console.log("AI解析開始... モデル:", primaryModel);
     
