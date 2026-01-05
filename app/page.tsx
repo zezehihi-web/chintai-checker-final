@@ -466,50 +466,67 @@ export default function Home() {
     };
     updateElapsed();
 
-    // ローディングメッセージのバリエーション
+    // ローディングメッセージ（しっかり考えている感を演出）
     const loadingMessages = [
-      { threshold: 5, messages: ["見積書の文字を読み取り中...", "項目名を認識中...", "金額データを抽出中..."] },
-      { threshold: 15, messages: ["図面の情報を解析中...", "条件欄を確認中...", "記載内容を照合中..."] },
-      { threshold: 30, messages: ["敷金・礼金を確認中...", "仲介手数料を分析中...", "保証会社費用をチェック中..."] },
-      { threshold: 45, messages: ["付帯オプションを精査中...", "消毒費用を検証中...", "サポート料金を確認中..."] },
-      { threshold: 60, messages: ["市場相場と比較中...", "適正価格を算出中...", "削減可能額を計算中..."] },
-      { threshold: 75, messages: ["交渉ポイントを整理中...", "リスク評価を実施中...", "最終チェック中..."] },
-      { threshold: 90, messages: ["診断結果をまとめ中...", "レポートを生成中...", "もうすぐ完了..."] },
-      { threshold: 100, messages: ["最終処理中...", "完了間近..."] }
+      "見積書の文字データを読み取っています...",
+      "各項目の金額を認識しています...",
+      "図面の条件欄と照らし合わせています...",
+      "敷金・礼金の記載を確認しています...",
+      "仲介手数料の妥当性を分析しています...",
+      "保証会社の費用を業界相場と比較しています...",
+      "付帯オプションの必要性を精査しています...",
+      "24時間サポートの記載を図面と照合しています...",
+      "消毒・抗菌費用の妥当性を検証しています...",
+      "火災保険料を市場相場データベースと照合中...",
+      "鍵交換費用の適正価格を算出しています...",
+      "過去の診断データと比較分析しています...",
+      "削減可能な項目を特定しています...",
+      "交渉時のポイントを整理しています...",
+      "リスク評価スコアを計算しています...",
+      "最終的な診断結果をまとめています...",
+      "レポートを生成しています...",
+      "もうすぐ完了します..."
     ];
     
     let messageIndex = 0;
-    let lastThreshold = 0;
+    
+    // メッセージを5秒ごとに切り替える
+    const messageTimerRef = { current: null as NodeJS.Timeout | null };
+    const updateMessage = () => {
+      if (messageIndex < loadingMessages.length) {
+        setLoadingStep(loadingMessages[messageIndex]);
+        messageIndex++;
+      }
+      messageTimerRef.current = setTimeout(updateMessage, 5000); // 5秒ごと
+    };
+    setLoadingStep(loadingMessages[0]);
+    messageIndex = 1;
+    messageTimerRef.current = setTimeout(updateMessage, 5000);
 
+    // プログレスバーのアニメーション（90秒想定でゆっくり進む）
     const runAnimation = () => {
       const current = progressRef.current;
-      let increment = 0; let delay = 100;
+      const elapsed = (Date.now() - loadingStartRef.current) / 1000;
       
-      if (current < 10) { increment = 0.6; delay = 120; }
-      else if (current < 25) { increment = 0.4; delay = 150; }
-      else if (current < 45) { increment = 0.25; delay = 180; }
-      else if (current < 65) { increment = 0.18; delay = 220; }
-      else if (current < 80) { increment = 0.12; delay = 280; }
-      else if (current < 95) { increment = 0.06; delay = 350; }
-      else { increment = 0.02; delay = 400; }
+      // 90秒で95%に到達するペースで進行
+      const targetProgress = Math.min(95, (elapsed / 90) * 95);
       
-      // メッセージの更新
-      for (const stage of loadingMessages) {
-        if (current < stage.threshold && lastThreshold !== stage.threshold) {
-          const randomMessage = stage.messages[messageIndex % stage.messages.length];
-          setLoadingStep(randomMessage);
-          messageIndex++;
-          lastThreshold = stage.threshold;
-          break;
-        }
+      // 現在の進捗と目標の差分を徐々に埋める
+      const diff = targetProgress - current;
+      const increment = Math.max(0.05, diff * 0.1);
+      
+      if (current + increment < 99) { 
+        progressRef.current = Math.min(99, current + increment); 
       }
-      
-      if (current + increment < 99) { progressRef.current += increment; } 
-      else { progressRef.current = 99; }
       setLoadingProgress(progressRef.current);
-      timerRef.current = setTimeout(runAnimation, delay);
+      timerRef.current = setTimeout(runAnimation, 200);
     };
     runAnimation();
+    
+    // クリーンアップ用に参照を保存
+    const cleanupMessageTimer = () => {
+      if (messageTimerRef.current) clearTimeout(messageTimerRef.current);
+    };
 
     try {
       const formData = new FormData();
@@ -975,13 +992,16 @@ export default function Home() {
                 <div className="flex justify-between text-xs text-slate-500">
                   <span>経過: {loadingElapsed}秒</span>
                   <span>
-                    {loadingProgress < 30 
-                      ? "残り約20〜25秒" 
-                      : loadingProgress < 60 
-                        ? "残り約15〜20秒"
-                        : loadingProgress < 85
-                          ? "残り約5〜10秒"
-                          : "まもなく完了"}
+                    {(() => {
+                      // 経過時間から残り時間を推定（90秒想定）
+                      const estimatedTotal = 90;
+                      const remaining = Math.max(0, estimatedTotal - loadingElapsed);
+                      if (remaining > 60) return `残り約${Math.ceil(remaining / 10) * 10}秒`;
+                      if (remaining > 30) return `残り約${Math.ceil(remaining / 10) * 10}〜${Math.ceil(remaining / 10) * 10 + 10}秒`;
+                      if (remaining > 10) return `残り約${remaining}秒`;
+                      if (remaining > 0) return "まもなく完了";
+                      return "処理中...";
+                    })()}
                   </span>
                 </div>
               </div>
