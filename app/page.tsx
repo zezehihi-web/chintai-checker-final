@@ -490,36 +490,39 @@ export default function Home() {
     
     let messageIndex = 0;
     
-    // メッセージを5秒ごとに切り替える
+    // メッセージを3秒ごとに切り替える
     const messageTimerRef = { current: null as NodeJS.Timeout | null };
     const updateMessage = () => {
       if (messageIndex < loadingMessages.length) {
         setLoadingStep(loadingMessages[messageIndex]);
         messageIndex++;
+      } else {
+        // メッセージが一周したら最後の方を繰り返す
+        setLoadingStep(loadingMessages[loadingMessages.length - 1]);
       }
-      messageTimerRef.current = setTimeout(updateMessage, 5000); // 5秒ごと
+      messageTimerRef.current = setTimeout(updateMessage, 3000); // 3秒ごと
     };
     setLoadingStep(loadingMessages[0]);
     messageIndex = 1;
-    messageTimerRef.current = setTimeout(updateMessage, 5000);
+    messageTimerRef.current = setTimeout(updateMessage, 3000);
 
-    // プログレスバーのアニメーション（90秒想定でゆっくり進む）
+    // プログレスバーのアニメーション（30秒想定）
     const runAnimation = () => {
       const current = progressRef.current;
       const elapsed = (Date.now() - loadingStartRef.current) / 1000;
       
-      // 90秒で95%に到達するペースで進行
-      const targetProgress = Math.min(95, (elapsed / 90) * 95);
+      // 30秒で95%に到達するペースで進行
+      const targetProgress = Math.min(95, (elapsed / 30) * 95);
       
       // 現在の進捗と目標の差分を徐々に埋める
       const diff = targetProgress - current;
-      const increment = Math.max(0.05, diff * 0.1);
+      const increment = Math.max(0.1, diff * 0.15);
       
       if (current + increment < 99) { 
         progressRef.current = Math.min(99, current + increment); 
       }
       setLoadingProgress(progressRef.current);
-      timerRef.current = setTimeout(runAnimation, 200);
+      timerRef.current = setTimeout(runAnimation, 150);
     };
     runAnimation();
     
@@ -993,14 +996,14 @@ export default function Home() {
                   <span>経過: {loadingElapsed}秒</span>
                   <span>
                     {(() => {
-                      // 経過時間から残り時間を推定（90秒想定）
-                      const estimatedTotal = 90;
+                      // 経過時間から残り時間を推定（30秒想定）
+                      const estimatedTotal = 30;
                       const remaining = Math.max(0, estimatedTotal - loadingElapsed);
-                      if (remaining > 60) return `残り約${Math.ceil(remaining / 10) * 10}秒`;
-                      if (remaining > 30) return `残り約${Math.ceil(remaining / 10) * 10}〜${Math.ceil(remaining / 10) * 10 + 10}秒`;
+                      if (remaining > 20) return `残り約${Math.ceil(remaining / 5) * 5}秒`;
                       if (remaining > 10) return `残り約${remaining}秒`;
-                      if (remaining > 0) return "まもなく完了";
-                      return "処理中...";
+                      if (remaining > 5) return "まもなく完了";
+                      if (loadingElapsed < 60) return "処理中...";
+                      return "もう少しお待ちください...";
                     })()}
                   </span>
                 </div>
