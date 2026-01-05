@@ -309,12 +309,12 @@ const FortuneResult = ({ result }: { result: AnalysisResult }) => {
     }
   };
 
-  const getAccentColor = () => {
+  const getTypeBadgeStyle = () => {
     switch (result.secret_type) {
-      case "face": return "purple";
-      case "animal": return "emerald";
-      case "food": return "amber";
-      default: return "blue";
+      case "face": return "bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-400/50";
+      case "animal": return "bg-gradient-to-r from-emerald-500/30 to-teal-500/30 border-emerald-400/50";
+      case "food": return "bg-gradient-to-r from-amber-500/30 to-orange-500/30 border-amber-400/50";
+      default: return "bg-gradient-to-r from-blue-500/30 to-purple-500/30 border-blue-400/50";
     }
   };
 
@@ -326,8 +326,6 @@ const FortuneResult = ({ result }: { result: AnalysisResult }) => {
       default: return "✨";
     }
   };
-
-  const accent = getAccentColor();
 
   return (
     <div className={`bg-gradient-to-br ${getBackgroundTheme()} rounded-3xl p-8 relative overflow-hidden shadow-2xl`}>
@@ -362,7 +360,7 @@ const FortuneResult = ({ result }: { result: AnalysisResult }) => {
         {/* タイプ表示 */}
         {result.fortune_person_type && (
           <div className="text-center mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-            <div className={`inline-block bg-gradient-to-r from-${accent}-500/30 to-pink-500/30 backdrop-blur-sm border border-${accent}-400/50 rounded-full px-6 py-3`}>
+            <div className={`inline-block ${getTypeBadgeStyle()} backdrop-blur-sm border rounded-full px-6 py-3`}>
               <p className="text-white font-bold text-lg">
                 「{result.fortune_person_type}」
               </p>
@@ -835,6 +833,12 @@ export default function Home() {
       if (!data.result) {
         throw new Error("解析結果の形式が正しくありません");
       }
+      
+      // デバッグ: 裏コマンドモードかどうか確認
+      console.log("API Response:", data.result);
+      console.log("is_secret_mode:", data.result.is_secret_mode);
+      console.log("secret_type:", data.result.secret_type);
+      
       if (timerRef.current) clearTimeout(timerRef.current);
       if (elapsedTimerRef.current) clearTimeout(elapsedTimerRef.current);
       
