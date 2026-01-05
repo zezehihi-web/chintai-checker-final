@@ -190,8 +190,12 @@ const CameraCapture = ({
               {/* 暗い背景 */}
               <div className="absolute inset-0 bg-black/40"></div>
               
-              {/* ガイド枠 */}
-              <div className="relative w-[85%] max-w-md aspect-[3/4] border-4 border-white rounded-xl shadow-2xl bg-transparent z-10">
+              {/* ガイド枠 - 図面は横向き、その他は縦向き */}
+              <div className={`relative border-4 border-white rounded-xl shadow-2xl bg-transparent z-10 ${
+                targetType === "plan" 
+                  ? "w-[90%] max-w-lg aspect-[4/3]" 
+                  : "w-[85%] max-w-md aspect-[3/4]"
+              }`}>
                 {/* コーナーマーク */}
                 <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-amber-400 rounded-tl-lg"></div>
                 <div className="absolute -top-1 -right-1 w-8 h-8 border-t-4 border-r-4 border-amber-400 rounded-tr-lg"></div>
