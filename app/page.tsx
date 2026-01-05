@@ -9,15 +9,27 @@ type AnalysisResult = {
     name: string;
     price_original: number;
     price_fair: number;
-    status: "fair" | "negotiable" | "cut";
+    status: "fair" | "negotiable" | "cut" | "requires_confirmation";
     reason: string;
     is_insurance?: boolean;
+    // 新規追加: 根拠情報
+    evidence?: {
+      flyer_evidence: string | null;
+      estimate_evidence: string | null;
+      source_description: string;
+    };
+    requires_confirmation?: boolean;
+    confidence?: number;
   }[];
   total_original: number;
   total_fair: number;
   discount_amount: number;
   pro_review: { content: string; };
   risk_score: number;
+  // 新規追加
+  has_unconfirmed_items?: boolean;
+  unconfirmed_item_names?: string[];
+  extraction_quality?: 'high' | 'medium' | 'low';
 };
 
 // --- 画像圧縮関数 ---
@@ -627,15 +639,47 @@ export default function Home() {
               </div>
             </div>
 
+            {/* 要確認項目の警告 */}
+            {result.has_unconfirmed_items && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 animate-fade-in-up">
+                <div className="flex items-start gap-2">
+                  <span className="text-amber-500 text-lg">⚠️</span>
+                  <div>
+                    <p className="text-sm font-bold text-amber-700">一部の項目は確認が必要です</p>
+                    <p className="text-xs text-amber-600 mt-1">
+                      画像からの読み取りに不確実性がある項目があります。実際の書類と照合してください。
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Items List */}
             <div className="space-y-3 mb-4">
               {result.items.filter(i => i.status !== 'fair').map((item, index) => (
-                <div key={index} className="bg-red-50 border border-red-100 rounded-xl p-4 animate-fade-in-up" style={{ animationDelay: `${0.2 + index * 0.05}s` }}>
+                <div 
+                  key={index} 
+                  className={`border rounded-xl p-4 animate-fade-in-up ${
+                    item.requires_confirmation 
+                      ? 'bg-amber-50 border-amber-200' 
+                      : 'bg-red-50 border-red-100'
+                  }`} 
+                  style={{ animationDelay: `${0.2 + index * 0.05}s` }}
+                >
                   <div className="flex justify-between items-center mb-1">
                     <span className="font-bold text-slate-800">{item.name}</span>
-                    <span className="text-[10px] font-bold text-white bg-red-500 px-2 py-0.5 rounded">
-                      {item.status === 'cut' ? '削除推奨' : '交渉可'}
-                    </span>
+                    <div className="flex items-center gap-1">
+                      {item.requires_confirmation && (
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
+                          要確認
+                        </span>
+                      )}
+                      <span className={`text-[10px] font-bold text-white px-2 py-0.5 rounded ${
+                        item.status === 'cut' ? 'bg-red-500' : 'bg-orange-500'
+                      }`}>
+                        {item.status === 'cut' ? '削除推奨' : '交渉可'}
+                      </span>
+                    </div>
                   </div>
                   <div className="flex justify-between items-center">
                     <p className="text-xs text-slate-500">{item.reason}</p>
@@ -644,17 +688,32 @@ export default function Home() {
                       <span className="text-red-600 font-bold">¥{formatYen(item.price_fair)}</span>
                     </div>
                   </div>
+                  {/* 根拠情報の表示 */}
+                  {item.evidence && (
+                    <div className="mt-2 pt-2 border-t border-slate-200">
+                      <p className="text-[10px] text-slate-400 font-bold mb-1">📋 根拠</p>
+                      <p className="text-[10px] text-slate-500">{item.evidence.source_description}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
             {result.items.filter(i => i.status === 'fair').length > 0 && (
               <div className="mt-6 pt-4 border-t border-slate-100">
                 <p className="text-xs font-bold text-emerald-600 mb-2">✅ 適正な項目</p>
-                <div className="text-xs text-slate-500 grid grid-cols-2 gap-2">
+                <div className="text-xs text-slate-500 space-y-2">
                   {result.items.filter(i => i.status === 'fair').map((item, idx) => (
-                    <div key={idx} className="flex justify-between border-b border-slate-100 pb-1">
-                      <span>{item.name}</span>
-                      <span>¥{formatYen(item.price_fair)}</span>
+                    <div key={idx} className="border-b border-slate-100 pb-2">
+                      <div className="flex justify-between">
+                        <span className="font-medium">{item.name}</span>
+                        <span>¥{formatYen(item.price_fair)}</span>
+                      </div>
+                      {/* 根拠情報の表示 */}
+                      {item.evidence && (
+                        <p className="text-[10px] text-slate-400 mt-1">
+                          根拠: {item.evidence.source_description}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
