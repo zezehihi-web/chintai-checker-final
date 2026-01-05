@@ -455,11 +455,13 @@ export default function Home() {
     const runAnimation = () => {
       const current = progressRef.current;
       let increment = 0; let delay = 100;
-      if (current < 20) { increment = 1.0; delay = 80; setLoadingStep("見積書をスキャン中..."); }
-      else if (current < 40) { increment = 0.5; delay = 100; setLoadingStep("図面と照合中..."); }
-      else if (current < 60) { increment = 0.4; delay = 120; setLoadingStep("市場相場と比較中..."); }
-      else if (current < 80) { increment = 0.3; delay = 150; setLoadingStep("削減項目を算出中..."); }
-      else { increment = 0.05; delay = 200; setLoadingStep("レポート生成中..."); }
+      if (current < 15) { increment = 0.8; delay = 100; setLoadingStep("📄 見積書をスキャン中..."); }
+      else if (current < 30) { increment = 0.5; delay = 120; setLoadingStep("🗺️ 図面から項目を抽出中..."); }
+      else if (current < 50) { increment = 0.3; delay = 150; setLoadingStep("🔍 1回目の診断実行中..."); }
+      else if (current < 65) { increment = 0.25; delay = 180; setLoadingStep("🔍 2回目の診断実行中..."); }
+      else if (current < 80) { increment = 0.2; delay = 200; setLoadingStep("🔍 3回目の診断実行中..."); }
+      else if (current < 95) { increment = 0.1; delay = 250; setLoadingStep("⚖️ 多数決で最終判定中..."); }
+      else { increment = 0.02; delay = 300; setLoadingStep("📊 レポート生成中..."); }
       if (current + increment < 99) { progressRef.current += increment; } 
       else { progressRef.current = 99; }
       setLoadingProgress(progressRef.current);

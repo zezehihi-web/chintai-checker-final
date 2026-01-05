@@ -1,18 +1,59 @@
 /**
  * 賃貸初期費用診断 API
  * 
- * 改善版 v2:
+ * 改善版 v3:
+ * - 2段階処理（抽出→判定）
+ * - 判定を3回実行して多数決
  * - temperature=0で安定した出力
- * - 厳格な判定ルール（図面との照合を徹底）
- * - 「無料」記載項目の特別ルール追加
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
 
-export const maxDuration = 60;
+export const maxDuration = 120; // 処理時間が長くなるため延長
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+
+// 抽出結果の型定義
+interface ExtractedItem {
+  name: string;
+  estimate_price: number | null;
+  estimate_text: string;
+  flyer_price: number | null;
+  flyer_text: string | null;
+  flyer_status: "recorded" | "free" | "not_found";
+}
+
+interface ExtractionResult {
+  property_name: string;
+  room_number: string;
+  rent: number;
+  management_fee: number;
+  items: ExtractedItem[];
+}
+
+// 判定結果の型定義
+interface JudgmentItem {
+  name: string;
+  price_original: number;
+  price_fair: number;
+  status: "fair" | "negotiable" | "cut";
+  reason: string;
+  evidence: {
+    flyer_evidence: string | null;
+    estimate_evidence: string | null;
+    source_description: string;
+  };
+}
+
+interface JudgmentResult {
+  items: JudgmentItem[];
+  total_original: number;
+  total_fair: number;
+  discount_amount: number;
+  risk_score: number;
+  pro_review: { content: string };
+}
 
 export async function POST(req: Request) {
   try {
@@ -51,257 +92,284 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "条件欄は画像ファイルである必要があります" }, { status: 400 });
     }
 
-    const parts: any[] = [];
+    // 画像データの準備
+    const imageParts: any[] = [];
     const estimateBuffer = Buffer.from(await estimateFile.arrayBuffer());
-    parts.push({
+    imageParts.push({
       inlineData: { mimeType: estimateFile.type, data: estimateBuffer.toString("base64") },
     });
 
     if (planFile) {
       const planBuffer = Buffer.from(await planFile.arrayBuffer());
-      parts.push({
+      imageParts.push({
         inlineData: { mimeType: planFile.type, data: planBuffer.toString("base64") },
       });
     }
 
     if (conditionFile) {
       const conditionBuffer = Buffer.from(await conditionFile.arrayBuffer());
-      parts.push({
+      imageParts.push({
         inlineData: { mimeType: conditionFile.type, data: conditionBuffer.toString("base64") },
       });
     }
 
-    const prompt = `
-あなたは「入居者の味方をする、経験豊富な不動産コンサルタント」です。
-見積書と募集図面を**厳密に照合**し、不当な費用を見つけ出してください。
+    const primaryModel = process.env.GEMINI_MODEL_NAME || "gemini-2.5-flash";
+    
+    // ========================================
+    // 【第1段階】項目の抽出
+    // ========================================
+    console.log("【第1段階】項目抽出開始...");
+    
+    const extractionPrompt = `
+あなたは画像から情報を正確に抽出するOCRスペシャリストです。
+見積書と募集図面から、すべての費用項目を抽出してください。
 
-## 【画像の説明】
-- 1枚目: 見積書（必須）
-- 2枚目以降: 募集図面（マイソク）または条件欄のアップ画像（任意）
+## 【重要】類似項目の名称統一ルール
+以下の項目は同一として扱い、統一した名称で出力してください：
+- 「入居者安心サポート」「24時間サポート」「24時間ライフサポート」「安心サポート」「緊急サポート」「ライフサポート」→「24時間サポート」
+- 「消毒」「抗菌」「室内消毒」「室内抗菌」「消毒施工」「抗菌消臭」「室内抗菌・消毒施工費」→「室内消毒」
+- 「簡易消火器具代」「消火器」「消火器代」→「消火器」
+- 「鍵交換」「鍵代」「鍵費用」「鍵交換費用」「カードキー」→「鍵交換」
 
----
+## 抽出ルール
+1. **見積書から**: すべての項目名と金額を正確に読み取る
+2. **図面から**: 各項目について以下を確認
+   - 金額が記載されている → flyer_status: "recorded", flyer_price: 金額
+   - 「無料」「0円」「サービス」と記載 → flyer_status: "free", flyer_price: 0
+   - 記載なし → flyer_status: "not_found", flyer_price: null
 
-## 【最重要】判定の絶対ルール
-
-### ルール1: 「図面に無料と記載」→「見積書に金額あり」= 必ず「削除推奨」
-
-以下のような項目名は**同一項目として扱ってください**（名称のバリエーション）:
-- 「入居者安心サポート」「24時間サポート」「24時間ライフサポート」「安心サポート」「緊急サポート」→ すべて同じ
-- 「消毒」「抗菌」「室内消毒」「室内抗菌」「消毒施工」「抗菌消臭」→ すべて同じ
-
-**判定基準:**
-- 図面に「無料」「0円」「サービス」と記載 → 見積書に金額があれば → **status: "cut", price_fair: 0, reason: "図面に無料と記載があるため請求は不当"**
-
-### ルール2: 「図面に記載なし」= 必ず「削除推奨」または「交渉可」
-
-見積書に記載があるが、図面に一切記載がない項目:
-- 付帯サービス（消毒、サポート、クラブ、消火器など）→ **status: "cut", price_fair: 0**
-- その他の費用 → **status: "negotiable"**
-
-**例外（図面に記載がなくても適正と判定できる項目）:**
-- 敷金、礼金、前家賃、管理費・共益費、仲介手数料、火災保険、保証会社、鍵交換
-
-### ルール3: 金額の正確な読み取り
-
-見積書の金額は**1円単位で正確に**読み取ってください。
-- 「16,500円」→ 16500
-- 「6,600円」→ 6600
-- 「94,600円」→ 94600
-
----
-
-## 【項目別の詳細ガイドライン】
-
-### 24時間サポート / 入居者安心サポート
-- 図面に「無料」と記載 → 見積書に金額あり → **cut（図面に無料記載あり）**
-- 図面に記載なし → 見積書に金額あり → **cut（図面に記載なし）**
-- 図面に金額記載あり → 見積書と同額 → **fair**
-
-### 消毒・抗菌施工
-- 図面に記載なし → **cut（任意オプションのため削除可能）**
-- 図面に金額記載あり → 見積書と同額 → **fair**
-
-### 簡易消火器具代 / 消火器
-- 図面に記載なし → **cut（法的義務なし、削除可能）**
-- 図面に記載あり → **fair**
-
-### 鍵交換費用
-- 図面に金額記載あり → 見積書と照合して判定
-- 図面に記載なし → **negotiable（交渉余地あり）**
-
-### 仲介手数料
-- 家賃の1ヶ月分超 → **cut**
-- 家賃の1ヶ月分 → **negotiable（原則0.5ヶ月が法定上限）**
-- 家賃の0.5ヶ月分以下 → **fair**
-
-### 火災保険
-- 20,000円超 → **negotiable**
-- 20,000円以下 → **fair**
-
-### 保証会社（初回保証料）
-- 家賃+管理費の50%程度 → **fair**
-- それ以上 → **negotiable**
-
----
-
-## 【出力フォーマット】
-
-必ず以下のJSON形式で出力してください:
-
+## 出力形式（JSON）
 {
-  "property_name": "物件名（図面から読み取り）",
+  "property_name": "物件名",
   "room_number": "号室",
+  "rent": 家賃（数値）,
+  "management_fee": 管理費・共益費（数値）,
   "items": [
     {
-      "name": "項目名",
-      "price_original": 見積書の金額（数値）,
-      "price_fair": 適正価格（数値）,
-      "status": "fair" | "negotiable" | "cut",
-      "reason": "判定理由（図面との照合結果を明記）",
-      "evidence": {
-        "flyer_evidence": "図面から読み取った該当箇所の原文（なければnull）",
-        "estimate_evidence": "見積書から読み取った原文",
-        "source_description": "判定根拠の要約"
-      }
+      "name": "統一された項目名",
+      "estimate_price": 見積書の金額（数値、なければnull）,
+      "estimate_text": "見積書から読み取った原文",
+      "flyer_price": 図面の金額（数値、無料なら0、記載なしならnull）,
+      "flyer_text": "図面から読み取った原文（なければnull）",
+      "flyer_status": "recorded" | "free" | "not_found"
     }
-  ],
-  "total_original": 見積書の合計金額,
-  "total_fair": 適正価格の合計,
-  "discount_amount": 削減可能額,
-  "pro_review": {
-    "content": "【総括】\\n削減ポイントの要約"
-  },
-  "risk_score": 0-100（高いほど払いすぎの危険）
+  ]
 }
 
----
-
-## 【チェックリスト】出力前に必ず確認
-
-□ 図面に「無料」と記載されている項目が、見積書で有料になっていないか？ → あれば必ずcut
-□ 見積書にあるが図面に記載がない付帯サービスはないか？ → あれば必ずcut
-□ 各項目の金額は見積書から正確に読み取れているか？
-□ evidenceに図面・見積書からの原文を記載したか？
+**重要**: 金額は数値のみ（カンマや円は除去）。見積書のすべての項目を漏れなく抽出すること。
 `;
 
-    parts.push({ text: prompt });
-
-    // モデル名
-    const primaryModel = process.env.GEMINI_MODEL_NAME || "gemini-2.5-flash";
-    const fallbackModels = ["gemini-2.5-flash-lite", "gemini-2.0-flash"];
+    const extractionParts = [...imageParts, { text: extractionPrompt }];
     
-    console.log("AI解析開始... モデル:", primaryModel);
-    let result;
-    let usedModel = primaryModel;
-    
+    let extractionResult: ExtractionResult;
     try {
       const model = genAI.getGenerativeModel({ 
         model: primaryModel, 
         generationConfig: { 
           responseMimeType: "application/json",
-          temperature: 0  // 出力を安定化
+          temperature: 0
         }
       });
-      result = await model.generateContent(parts);
-    } catch (apiError: any) {
-      console.error("API Error:", apiError.message);
-      
-      // レート制限エラーの場合、フォールバック
-      const isRateLimitError = 
-        apiError.status === 429 || 
-        apiError.message?.includes('429') || 
-        apiError.message?.includes('rate limit');
-      
-      if (isRateLimitError) {
-        for (const nextModel of fallbackModels) {
-          try {
-            console.log(`フォールバック: ${nextModel}`);
-            const fallbackModelInstance = genAI.getGenerativeModel({ 
-              model: nextModel, 
-              generationConfig: { 
-                responseMimeType: "application/json",
-                temperature: 0
-              }
-            });
-            result = await fallbackModelInstance.generateContent(parts);
-            usedModel = nextModel;
-            break;
-          } catch (fallbackError: any) {
-            console.error(`フォールバック失敗 (${nextModel}):`, fallbackError.message);
-          }
-        }
-        
-        if (!result) {
-          return NextResponse.json({ 
-            error: "APIレート制限に達しました",
-            details: "しばらく時間をおいてから再度お試しください。"
-          }, { status: 429 });
-        }
-      } else {
-        throw apiError;
+      const response = await model.generateContent(extractionParts);
+      const responseText = response.response.text();
+      const cleanedText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      extractionResult = JSON.parse(cleanedText);
+      console.log("抽出完了:", extractionResult.items?.length, "項目");
+    } catch (error: any) {
+      console.error("抽出エラー:", error.message);
+      throw new Error("画像からの情報抽出に失敗しました");
+    }
+
+    // ========================================
+    // 【第2段階】判定（3回実行して多数決）
+    // ========================================
+    console.log("【第2段階】判定開始（3回実行）...");
+    
+    const judgmentPrompt = `
+あなたは入居者の味方をする不動産コンサルタントです。
+以下の抽出データを基に、各項目の適正性を判定してください。
+
+## 抽出データ
+${JSON.stringify(extractionResult, null, 2)}
+
+## 【絶対ルール】判定基準
+
+### ルール1: flyer_status = "free" の項目
+図面に「無料」と記載されているのに見積書に金額がある
+→ **必ず status: "cut", price_fair: 0, reason: "図面に無料と記載あり"**
+
+### ルール2: flyer_status = "not_found" の項目
+図面に記載がない項目は以下のように判定：
+- 消毒・抗菌系 → **cut**（任意オプション）
+- サポート系 → **cut**（任意オプション）
+- 消火器 → **cut**（法的義務なし）
+- 鍵交換 → **negotiable**（交渉余地あり）
+- その他 → **negotiable**
+
+### ルール3: flyer_status = "recorded" の項目
+図面に金額記載あり
+- 見積書と同額 → **fair**
+- 見積書が高い → **negotiable**
+
+### ルール4: 基本項目の判定
+- 敷金・礼金: 図面と一致なら **fair**
+- 前家賃・管理費: **fair**
+- 仲介手数料: 家賃の1ヶ月分なら **negotiable**（0.5ヶ月が原則）、0.5ヶ月以下なら **fair**
+- 火災保険: 20,000円以下なら **fair**、超えたら **negotiable**
+- 保証会社: 50%程度なら **fair**
+
+## 出力形式（JSON）
+{
+  "items": [
+    {
+      "name": "項目名",
+      "price_original": 見積書の金額,
+      "price_fair": 適正価格,
+      "status": "fair" | "negotiable" | "cut",
+      "reason": "判定理由",
+      "evidence": {
+        "flyer_evidence": "図面の記載内容",
+        "estimate_evidence": "見積書の記載内容",
+        "source_description": "判定根拠"
       }
     }
+  ],
+  "total_original": 見積書合計,
+  "total_fair": 適正合計,
+  "discount_amount": 削減可能額,
+  "risk_score": 0-100,
+  "pro_review": {
+    "content": "【総括】一言で結論\\n\\n削減ポイントの説明"
+  }
+}
+`;
+
+    // 3回判定を実行
+    const judgmentResults: JudgmentResult[] = [];
     
-    if (!result) {
-      throw new Error("AI解析の結果が取得できませんでした");
+    for (let i = 0; i < 3; i++) {
+      try {
+        console.log(`判定 ${i + 1}/3 実行中...`);
+        const model = genAI.getGenerativeModel({ 
+          model: primaryModel, 
+          generationConfig: { 
+            responseMimeType: "application/json",
+            temperature: 0
+          }
+        });
+        const response = await model.generateContent([{ text: judgmentPrompt }]);
+        const responseText = response.response.text();
+        const cleanedText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        const result = JSON.parse(cleanedText) as JudgmentResult;
+        judgmentResults.push(result);
+      } catch (error: any) {
+        console.error(`判定 ${i + 1} エラー:`, error.message);
+      }
     }
-    
-    const responseText = result.response.text();
-    console.log("AI応答を受信しました (モデル:", usedModel, ")");
-    
-    // JSONパース
-    let json;
-    try {
-      const cleanedText = responseText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-      json = JSON.parse(cleanedText);
-    } catch (parseError: any) {
-      console.error("JSON Parse Error:", parseError);
-      console.error("Response text:", responseText.substring(0, 500));
-      throw new Error(`AIの応答の解析に失敗しました: ${parseError.message}`);
+
+    if (judgmentResults.length === 0) {
+      throw new Error("判定処理に失敗しました");
     }
+
+    // ========================================
+    // 【第3段階】多数決で最終判定
+    // ========================================
+    console.log("【第3段階】多数決処理...");
     
-    // 後処理: nullの項目に要確認フラグを追加
-    if (json.items && Array.isArray(json.items)) {
-      json.items = json.items.map((item: any) => {
-        // price_originalがnullの場合
-        if (item.price_original === null) {
-          return {
-            ...item,
-            price_original: 0, // UIでは0と表示
-            requires_confirmation: true,
-            reason: item.reason + "（※読み取り要確認）"
-          };
-        }
-        return {
-          ...item,
-          requires_confirmation: false
-        };
-      });
+    // 各項目の判定を多数決で決定
+    const finalItems: JudgmentItem[] = [];
+    const allItemNames = new Set<string>();
+    
+    // すべての判定結果から項目名を収集
+    for (const result of judgmentResults) {
+      for (const item of result.items) {
+        allItemNames.add(item.name);
+      }
+    }
+
+    // 各項目について多数決
+    for (const itemName of allItemNames) {
+      const itemJudgments: JudgmentItem[] = [];
       
-      // 要確認項目があるかチェック
-      const hasUnconfirmed = json.items.some((item: any) => item.requires_confirmation);
-      json.has_unconfirmed_items = hasUnconfirmed;
-      json.unconfirmed_item_names = json.items
-        .filter((item: any) => item.requires_confirmation)
-        .map((item: any) => item.name);
+      for (const result of judgmentResults) {
+        const item = result.items.find(i => i.name === itemName);
+        if (item) {
+          itemJudgments.push(item);
+        }
+      }
+
+      if (itemJudgments.length === 0) continue;
+
+      // statusの多数決
+      const statusCounts: Record<string, number> = { fair: 0, negotiable: 0, cut: 0 };
+      for (const item of itemJudgments) {
+        statusCounts[item.status]++;
+      }
+
+      let finalStatus: "fair" | "negotiable" | "cut" = "fair";
+      let maxCount = 0;
+      for (const [status, count] of Object.entries(statusCounts)) {
+        if (count > maxCount) {
+          maxCount = count;
+          finalStatus = status as "fair" | "negotiable" | "cut";
+        }
+      }
+
+      // 多数決で決まった判定を持つ項目を選択
+      const selectedItem = itemJudgments.find(i => i.status === finalStatus) || itemJudgments[0];
+      
+      // 一致度の情報を追加
+      const agreementRate = Math.round((maxCount / judgmentResults.length) * 100);
+      let reason = selectedItem.reason;
+      if (agreementRate < 100) {
+        reason += ` (判定一致率: ${agreementRate}%)`;
+      }
+
+      finalItems.push({
+        ...selectedItem,
+        status: finalStatus,
+        reason: reason
+      });
     }
-    
-    // 総評の整形
-    if (json.pro_review && json.pro_review.content) {
-      let content = json.pro_review.content.trim();
-      content = content.replace(/この物件の初期費用について[^\n]*\n?/g, '');
-      content = content.replace(/以下の点を必ず含めて[^\n]*\n?/g, '');
-      json.pro_review.content = content;
-    }
+
+    // 合計を再計算
+    const total_original = finalItems.reduce((sum, item) => sum + (item.price_original || 0), 0);
+    const total_fair = finalItems.reduce((sum, item) => sum + (item.price_fair || 0), 0);
+    const discount_amount = total_original - total_fair;
+
+    // risk_scoreは平均を取る
+    const avgRiskScore = Math.round(
+      judgmentResults.reduce((sum, r) => sum + (r.risk_score || 50), 0) / judgmentResults.length
+    );
+
+    // pro_reviewは最初の結果を使用
+    const pro_review = judgmentResults[0]?.pro_review || { content: "診断完了" };
+
+    // 最終結果を構築
+    const finalResult = {
+      property_name: extractionResult.property_name,
+      room_number: extractionResult.room_number,
+      items: finalItems.map(item => ({
+        ...item,
+        requires_confirmation: false
+      })),
+      total_original,
+      total_fair,
+      discount_amount,
+      risk_score: avgRiskScore,
+      pro_review,
+      has_unconfirmed_items: false,
+      unconfirmed_item_names: [] as string[]
+    };
 
     console.log("診断完了:", {
-      model: usedModel,
-      items_count: json.items?.length,
-      total_original: json.total_original,
-      discount_amount: json.discount_amount
+      items_count: finalResult.items.length,
+      total_original: finalResult.total_original,
+      discount_amount: finalResult.discount_amount,
+      judgment_runs: judgmentResults.length
     });
 
-    return NextResponse.json({ result: json });
+    return NextResponse.json({ result: finalResult });
 
   } catch (error: any) {
     console.error("Server Error:", error);
