@@ -643,6 +643,7 @@ export default function Home() {
   const [isCopied, setIsCopied] = useState(false);
   const [shareId, setShareId] = useState<string | null>(null);
   const [isCreatingShare, setIsCreatingShare] = useState(false);
+  const [isCreatingLineLink, setIsCreatingLineLink] = useState(false);
   
   // カメラ関連
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -949,7 +950,7 @@ export default function Home() {
 
   const generateShareText = () => {
     if (!result) return "";
-    return `【賃貸初期費用診断】\n` +
+    return `【賃貸初期費用AI診断】\n` +
            `提示額：¥${formatYen(result.total_original)}\n` +
            `適正額：¥${formatYen(result.total_fair)}\n` +
            `⬇️ ⬇️ ⬇️\n` +
@@ -1012,6 +1013,39 @@ export default function Home() {
     } catch { alert("保存に失敗しました"); }
   };
 
+  // LINE連携ハンドラー
+  const handleLineLink = async () => {
+    if (!result || isCreatingLineLink) return;
+    setIsCreatingLineLink(true);
+    try {
+      // 1. 案件作成＋caseToken発行
+      const res = await fetch('/api/case/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ result }),
+      });
+
+      if (!res.ok) throw new Error('案件の作成に失敗しました');
+
+      const { caseId, caseToken } = await res.json();
+
+      // 2. LIFF URLへ遷移
+      const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+      if (!liffId || liffId === 'your-liff-id-here') {
+        alert('LIFF IDが設定されていません。管理者にお問い合わせください。');
+        return;
+      }
+
+      const liffUrl = `https://liff.line.me/${liffId}?state=${caseToken}`;
+      window.location.href = liffUrl;
+    } catch (error) {
+      console.error('LINE link creation error:', error);
+      alert('LINEとの連携に失敗しました');
+    } finally {
+      setIsCreatingLineLink(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100 font-sans pb-20 relative overflow-hidden">
       {/* 背景装飾 */}
@@ -1036,7 +1070,7 @@ export default function Home() {
             }}
             className="text-lg md:text-xl font-black text-white tracking-tight hover:text-blue-400 transition-colors cursor-pointer"
           >
-            賃貸初期費用<span className="text-blue-400">診断</span>
+            賃貸初期費用<span className="text-yellow-400 font-extrabold">AI</span><span className="text-blue-400">診断</span>
           </button>
         </div>
       </header>
@@ -1053,12 +1087,12 @@ export default function Home() {
       {currentView === "top" && (
         <div className="max-w-3xl mx-auto p-6 md:p-10 animate-fade-in">
           <div className="text-center mb-10 mt-4">
-            <h2 className="text-2xl md:text-4xl font-extrabold text-white mb-4 leading-tight">
-              その見積もり、<br/>
+            <h2 className="text-xl md:text-4xl font-extrabold text-white mb-3 md:mb-4 leading-tight">
+              その見積もり、<br className="md:hidden"/>
               <span className="bg-gradient-to-r from-blue-400 to-cyan-400 text-transparent bg-clip-text">本当に適正価格</span>ですか？
             </h2>
-            <p className="text-slate-400 text-sm">
-              AIが図面と見積もりを照合し、<br/>交渉可能な項目を洗い出します。
+            <p className="text-slate-400 text-xs md:text-sm">
+              AIが図面と見積もりを照合し、<br className="md:hidden"/>交渉可能な項目を洗い出します。
             </p>
           </div>
 
@@ -1067,28 +1101,28 @@ export default function Home() {
             <div className="flex items-start gap-3">
               <span className="text-2xl">📸</span>
               <div>
-                <p className="text-amber-300 font-bold text-sm mb-2">撮影のコツ</p>
-                <ul className="text-amber-200/80 text-xs space-y-1">
-                  <li>・書類を<span className="font-bold text-amber-200">平らな場所に置いて正面</span>から撮影</li>
-                  <li>・<span className="font-bold text-amber-200">照明の反射を避けて</span>全体が読める状態で</li>
-                  <li>・文字がぼやけないよう<span className="font-bold text-amber-200">ピントを合わせて</span>撮影</li>
+                <p className="text-amber-300 font-bold text-xs mb-1.5">撮影のコツ</p>
+                <ul className="text-amber-200/80 text-[10px] space-y-0.5">
+                  <li>・<span className="font-bold text-amber-200">平らな場所</span>に置いて正面から</li>
+                  <li>・<span className="font-bold text-amber-200">反射を避けて</span>全体が見える状態</li>
+                  <li>・<span className="font-bold text-amber-200">ピントを合わせて</span>撮影</li>
                 </ul>
               </div>
             </div>
           </div>
 
           {/* 2カラムレイアウト: 左=見積書, 右=図面＆条件欄 */}
-          <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="grid grid-cols-2 gap-2 md:gap-4 mb-8">
             {/* 左カラム: 見積書 */}
             <div className="flex flex-col">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">必須</span>
-                <h3 className="text-base font-bold text-white">見積書</h3>
+              <div className="flex items-center gap-1 md:gap-2 mb-2 md:mb-3">
+                <span className="bg-red-500 text-white text-[9px] md:text-xs font-bold px-1.5 md:px-2 py-0.5 md:py-1 rounded-full">必須</span>
+                <h3 className="text-sm md:text-base font-bold text-white">見積書</h3>
               </div>
               
-              <div className="bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-2xl p-4 relative overflow-hidden hover:border-blue-500/50 transition-all group flex-1 min-h-[280px] flex flex-col justify-center">
+              <div className="bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-2xl p-4 md:p-6 relative overflow-hidden hover:border-blue-500/50 transition-all group flex-1 min-h-[280px] flex flex-col">
                 {estimatePreview ? (
-                  <div className="relative flex-1 flex items-center justify-center">
+                  <div className="relative flex-1 flex items-center justify-center py-4">
                     <img src={estimatePreview} className="w-full h-full max-h-[250px] object-contain rounded-lg" alt="見積書プレビュー" />
                     <button
                       onClick={() => {
@@ -1096,31 +1130,31 @@ export default function Home() {
                         setEstimateFile(null);
                         setEstimatePreview(null);
                       }}
-                      className="absolute top-2 right-2 bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center hover:bg-red-600 text-sm"
+                      className="absolute top-2 right-2 bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center hover:bg-red-600 text-sm z-10"
                     >
                       ✕
                     </button>
                   </div>
                 ) : (
-                  <div className="text-center py-6">
-                    <div className="mb-3 flex justify-center">
+                  <div className="text-center py-4 md:py-6 flex flex-col justify-center flex-1">
+                    <div className="mb-3 md:mb-4 flex justify-center">
                       <img 
                         src="/estimate-icon.png" 
                         alt="見積書" 
-                        className="w-16 h-16 object-contain drop-shadow-md"
+                        className="w-12 h-12 md:w-16 md:h-16 object-contain drop-shadow-md"
                       />
                     </div>
-                    <p className="text-slate-400 text-sm mb-4">見積書の画像</p>
+                    <p className="text-slate-400 text-xs md:text-sm mb-3 md:mb-4">見積書の画像</p>
                     <div className="flex gap-2 justify-center flex-wrap">
                       <button
                         onClick={() => openCamera("estimate")}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all text-sm"
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 md:px-4 py-2 md:py-2.5 rounded-xl flex items-center gap-2 transition-all text-xs md:text-sm"
                       >
                         <span>📷</span> 撮影
                       </button>
                       <button
                         onClick={() => estimateInputRef.current?.click()}
-                        className="bg-slate-700 hover:bg-slate-600 text-white font-bold px-4 py-2.5 rounded-xl flex items-center gap-2 transition-all text-sm"
+                        className="bg-slate-700 hover:bg-slate-600 text-white font-bold px-3 md:px-4 py-2 md:py-2.5 rounded-xl flex items-center gap-2 transition-all text-xs md:text-sm"
                       >
                         <span>🖼️</span> 選択
                       </button>
@@ -1139,17 +1173,17 @@ export default function Home() {
 
             {/* 右カラム: 募集図面＆条件欄（縦並び） */}
             <div className="flex flex-col">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="bg-emerald-500/80 text-white text-xs font-bold px-2 py-1 rounded-full">推奨</span>
-                <h3 className="text-base font-bold text-white">募集図面</h3>
-                <span className="text-slate-500 text-xs">精度UP</span>
+              <div className="flex items-center gap-1 md:gap-2 mb-2 md:mb-3">
+                <span className="bg-emerald-500/80 text-white text-[9px] md:text-xs font-bold px-1.5 md:px-2 py-0.5 md:py-1 rounded-full">推奨</span>
+                <h3 className="text-sm md:text-base font-bold text-white">募集図面</h3>
+                <span className="text-slate-500 text-[9px] md:text-xs">精度UP</span>
               </div>
               
               <div className="flex flex-col gap-3 flex-1">
                 {/* 募集図面（全体） */}
-                <div className="bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-xl p-3 relative overflow-hidden hover:border-emerald-500/50 transition-all flex-1 min-h-[130px] flex flex-col justify-center">
+                <div className="bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-xl p-2 md:p-3 relative overflow-hidden hover:border-emerald-500/50 transition-all flex-1 min-h-[130px] flex flex-col">
                 {planPreview ? (
-                    <div className="relative flex-1 flex items-center justify-center">
+                    <div className="relative flex-1 flex items-center justify-center py-2">
                       <img src={planPreview} className="w-full h-full max-h-[110px] object-contain rounded-lg" alt="募集図面プレビュー" />
                       <button
                         onClick={() => {
@@ -1157,34 +1191,34 @@ export default function Home() {
                           setPlanFile(null);
                           setPlanPreview(null);
                         }}
-                        className="absolute -top-1 -right-1 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-600 text-xs"
+                        className="absolute top-1 right-1 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-600 text-xs z-10"
                       >
                         ✕
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between px-2">
-                      <div className="flex items-center gap-2">
+                    <div className="flex items-center justify-between gap-2 px-1 md:px-2 py-2 flex-1">
+                      <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
                       <img 
                         src="/plan-icon.png" 
                           alt="図面" 
-                          className="w-10 h-10 object-contain drop-shadow-md"
+                          className="w-8 h-8 md:w-10 md:h-10 object-contain drop-shadow-md flex-shrink-0"
                         />
-                        <div>
-                          <p className="text-slate-300 text-xs font-bold">図面全体</p>
-                          <p className="text-slate-500 text-[10px]">物件情報が記載された図面</p>
+                        <div className="flex-shrink-0">
+                          <p className="text-slate-300 text-[10px] font-bold whitespace-nowrap">図面全体</p>
+                          <p className="text-slate-500 text-[9px] whitespace-nowrap">物件情報図面</p>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1 md:gap-2 flex-shrink-0">
                         <button
                           onClick={() => openCamera("plan")}
-                          className="bg-emerald-600/80 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 text-xs transition-all"
+                          className="bg-emerald-600/80 hover:bg-emerald-600 text-white font-bold px-2 md:px-3 py-1 md:py-1.5 rounded-lg flex items-center gap-1 text-[10px] md:text-xs transition-all"
                         >
                           📷
                         </button>
                         <button
                           onClick={() => planInputRef.current?.click()}
-                          className="bg-slate-700/80 hover:bg-slate-600 text-white font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 text-xs transition-all"
+                          className="bg-slate-700/80 hover:bg-slate-600 text-white font-bold px-2 md:px-3 py-1 md:py-1.5 rounded-lg flex items-center gap-1 text-[10px] md:text-xs transition-all"
                         >
                           🖼️
                         </button>
@@ -1201,9 +1235,9 @@ export default function Home() {
                 </div>
 
                 {/* 条件欄アップ */}
-                <div className="bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-xl p-3 relative overflow-hidden hover:border-emerald-500/50 transition-all flex-1 min-h-[130px] flex flex-col justify-center">
+                <div className="bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-xl p-2 md:p-3 relative overflow-hidden hover:border-emerald-500/50 transition-all flex-1 min-h-[130px] flex flex-col">
                   {conditionPreview ? (
-                    <div className="relative flex-1 flex items-center justify-center">
+                    <div className="relative flex-1 flex items-center justify-center py-2">
                       <img src={conditionPreview} className="w-full h-full max-h-[110px] object-contain rounded-lg" alt="条件欄プレビュー" />
                       <button
                         onClick={() => {
@@ -1211,30 +1245,30 @@ export default function Home() {
                           setConditionFile(null);
                           setConditionPreview(null);
                         }}
-                        className="absolute -top-1 -right-1 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-600 text-xs"
+                        className="absolute top-1 right-1 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center hover:bg-red-600 text-xs z-10"
                       >
                         ✕
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between px-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl">🔍</span>
-                        <div>
-                          <p className="text-slate-300 text-xs font-bold">条件欄を拡大撮影</p>
-                          <p className="text-slate-500 text-[10px]">家賃・敷金・礼金・備考欄を拡大</p>
+                    <div className="flex items-center justify-between gap-2 px-1 md:px-2 py-2 flex-1">
+                      <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
+                        <span className="text-xl md:text-2xl flex-shrink-0">🔍</span>
+                        <div className="flex-shrink-0">
+                          <p className="text-slate-300 text-[10px] font-bold whitespace-nowrap">条件欄拡大撮影</p>
+                          <p className="text-slate-500 text-[9px] whitespace-nowrap">家賃・敷金等拡大</p>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-1 md:gap-2 flex-shrink-0">
                         <button
                           onClick={() => openCamera("condition")}
-                          className="bg-emerald-600/80 hover:bg-emerald-600 text-white font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 text-xs transition-all"
+                          className="bg-emerald-600/80 hover:bg-emerald-600 text-white font-bold px-2 md:px-3 py-1 md:py-1.5 rounded-lg flex items-center gap-1 text-[10px] md:text-xs transition-all"
                         >
                           📷
                         </button>
                         <button
                           onClick={() => conditionInputRef.current?.click()}
-                          className="bg-slate-700/80 hover:bg-slate-600 text-white font-bold px-3 py-1.5 rounded-lg flex items-center gap-1 text-xs transition-all"
+                          className="bg-slate-700/80 hover:bg-slate-600 text-white font-bold px-2 md:px-3 py-1 md:py-1.5 rounded-lg flex items-center gap-1 text-[10px] md:text-xs transition-all"
                         >
                           🖼️
                         </button>
@@ -1255,8 +1289,8 @@ export default function Home() {
           
           {/* 精度アップの説明 */}
           <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-xl p-3 mb-8">
-            <p className="text-emerald-300 text-xs text-center">
-              💡 募集図面を追加すると、記載条件と見積書を照合してより正確に診断できます
+              <p className="text-emerald-300 text-[10px] text-center">
+              💡 図面追加で診断精度UP
               </p>
             </div>
 
@@ -1265,13 +1299,13 @@ export default function Home() {
               <button
                 onClick={handleAnalyze}
                 disabled={!estimateFile}
-                className={`w-full md:w-auto px-16 py-4 rounded-xl font-bold text-lg shadow-xl transition-all ${
+                className={`w-full md:w-auto px-8 md:px-16 py-3 md:py-4 rounded-xl font-bold text-base md:text-lg shadow-xl transition-all ${
                   !estimateFile 
                     ? "bg-slate-700 text-slate-500 cursor-not-allowed shadow-none" 
                     : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/30"
                 }`}
               >
-                {!estimateFile ? "見積書をアップロードしてください" : "適正価格を診断する"}
+                {!estimateFile ? "見積書をアップロード" : "適正価格を診断"}
               </button>
             ) : (
               <div className={`backdrop-blur-sm rounded-2xl p-6 border shadow-xl max-w-md mx-auto ${
@@ -1494,7 +1528,7 @@ export default function Home() {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-4 mb-8">
+          <div className="grid grid-cols-2 gap-2 md:gap-4 mb-8">
             <button onClick={handleDownloadImage} className="col-span-2 py-3 rounded-xl font-bold bg-slate-700 text-white text-sm hover:bg-slate-600 flex items-center justify-center gap-2 shadow-md">
               <span>💾</span> 画像を保存
             </button>
@@ -1518,6 +1552,31 @@ export default function Home() {
               className="col-span-2 bg-slate-700 text-slate-200 font-bold text-sm py-3 rounded-xl hover:bg-slate-600 border border-slate-600 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isCreatingShare ? "⏳ 準備中..." : isCopied ? "✨ コピーしました！" : "🔗 共有用リンクをコピー"}
+            </button>
+            {/* LINE連携ボタン */}
+            <button 
+              onClick={handleLineLink} 
+              disabled={isCreatingLineLink}
+              className="col-span-2 bg-gradient-to-r from-[#06C755] to-[#05b34c] text-white py-4 rounded-xl font-black text-base shadow-lg hover:from-[#05b34c] hover:to-[#04a042] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 transition-all hover:scale-[1.02] relative overflow-hidden group"
+              style={{
+                boxShadow: '0 10px 30px rgba(6, 199, 85, 0.3)'
+              }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+              <div className="relative z-10 flex items-center gap-3">
+                <div className="w-6 h-6 flex items-center justify-center">
+                  {isCreatingLineLink ? (
+                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                  ) : (
+                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
+                      <path d="M12 2C6.48 2 2 5.56 2 10.1c0 2.45 1.3 4.63 3.4 6.1-.15.8-.5 2.15-.56 2.47-.05.24.1.47.34.47.1 0 .2-.03.27-.08.05-.03 2.6-1.73 3.63-2.45.62.17 1.28.26 1.95.26 5.52 0 10-3.56 10-8.1S17.52 2 12 2z"/>
+                    </svg>
+                  )}
+                </div>
+                <span className="tracking-wide">
+                  {isCreatingLineLink ? "準備中..." : "LINEで続きを確認"}
+                </span>
+              </div>
             </button>
             {shareId && (
               <div className="col-span-2 bg-blue-500/20 border border-blue-500/30 rounded-xl p-3 text-xs text-blue-300">
@@ -1577,7 +1636,7 @@ export default function Home() {
                 : lines.slice(1);
               
               const noticeText = "※今回の診断結果はあくまで『書面上で分かる範囲』の減額です。";
-              const negotiationText = "交渉が面倒、怖いと感じる方もご安心ください。私たちが全ての交渉を代行し、最安値で契約できるようサポートします。まずはLINEでご相談ください。";
+              const negotiationText = "交渉が面倒、怖いと感じる方は、弊社で全ての交渉を代行しお得に契約できるようサポートが可能です。希望の場合はLINEでご相談ください。";
               
               const filteredRestLines = restLines.filter(line => {
                 const trimmed = line.trim();
@@ -1614,11 +1673,11 @@ export default function Home() {
              <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
                 <div className="text-left flex-1">
-                  <h3 className="text-lg font-bold text-white mb-2">
-                    AIの診断結果を<br/><span className="text-green-400">プロが無料で精査</span>します
+                  <h3 className="text-sm md:text-lg font-bold text-white mb-1">
+                    AI診断結果を<br className="md:hidden"/><span className="text-green-400">プロが無料精査</span>
                   </h3>
-                  <p className="text-[10px] text-slate-500">
-                    リンクをコピーして送るだけで、最安値プランをご提案。
+                  <p className="text-[9px] md:text-[10px] text-slate-500">
+                    最安値プランをご提案
                   </p>
                 </div>
                 <a 
@@ -1641,36 +1700,36 @@ export default function Home() {
                 </a>
              </div>
              <div className="relative z-10 mt-6 pt-6 border-t border-slate-700">
-                <div className="flex flex-wrap gap-4 text-sm justify-center md:justify-start">
-                  <div className="flex items-center gap-2 text-slate-300 group">
-                    <div className="relative w-8 h-8 flex items-center justify-center bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
-                      <span className="text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>📅</span>
+                <div className="flex flex-wrap gap-2 md:gap-4 text-[10px] md:text-sm justify-center md:justify-start">
+                  <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                    <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
+                      <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>📅</span>
                     </div>
-                    <span className="font-black tracking-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>365日対応</span>
+                    <span className="font-black tracking-tight text-[10px] md:text-sm whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>365日対応</span>
                   </div>
-                  <div className="flex items-center gap-2 text-slate-300 group">
-                    <div className="relative w-8 h-8 flex items-center justify-center bg-gradient-to-br from-amber-500/20 to-amber-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
-                      <span className="text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>🏆</span>
+                  <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                    <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-amber-500/20 to-amber-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
+                      <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>🏆</span>
                     </div>
-                    <span className="font-black tracking-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>実績800件以上</span>
+                    <span className="font-black tracking-tight text-[10px] md:text-sm whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>実績800件</span>
                   </div>
-                  <div className="flex items-center gap-2 text-slate-300 group">
-                    <div className="relative w-8 h-8 flex items-center justify-center bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
-                      <span className="text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>📱</span>
+                  <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                    <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
+                      <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>📱</span>
                     </div>
-                    <span className="font-black tracking-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>来店不要</span>
+                    <span className="font-black tracking-tight text-[10px] md:text-sm whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>来店不要</span>
                   </div>
-                  <div className="flex items-center gap-2 text-slate-300 group">
-                    <div className="relative w-8 h-8 flex items-center justify-center bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
-                      <span className="text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>💰</span>
+                  <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                    <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
+                      <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>💰</span>
                     </div>
-                    <span className="font-black tracking-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>仲介手数料最大無料</span>
+                    <span className="font-black tracking-tight text-[10px] md:text-sm whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>仲介手数料無料</span>
                   </div>
-                  <div className="flex items-center gap-2 text-slate-300 group">
-                    <div className="relative w-8 h-8 flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
-                      <span className="text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>✅</span>
+                  <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                    <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
+                      <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>✅</span>
                     </div>
-                    <span className="font-black tracking-tight" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>不要オプション一切無し</span>
+                    <span className="font-black tracking-tight text-[10px] md:text-sm whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>不要オプション無し</span>
                   </div>
                 </div>
              </div>

@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
+    "@line/bot-sdk": "^10.5.0",
+    "@vercel/kv": "^3.0.0",
     "html2canvas": "^1.4.1",
     "next": "16.1.1",
     "react": "19.2.3",
