@@ -76,13 +76,19 @@ export default function LiffLinkPage() {
           throw new Error(data.error || 'サーバーエラー');
         }
 
-        // 5. 成功メッセージ送信
-        await window.liff.sendMessages([
-          {
-            type: 'text',
-            text: '✅ 引き継ぎが完了しました！\n\n「履歴」と送信すると案件を確認できます。',
-          },
-        ]);
+        // 5. 成功メッセージ送信（エラー時も処理は続行）
+        try {
+          await window.liff.sendMessages([
+            {
+              type: 'text',
+              text: '✅ 引き継ぎが完了しました！\n\n「履歴」と送信すると案件を確認できます。',
+            },
+          ]);
+        } catch (messageError: any) {
+          // メッセージ送信が失敗しても連携は成功しているので、処理を続行
+          console.warn('Failed to send LINE message:', messageError);
+          // エラーは無視して処理を続行
+        }
 
         setStatus('success');
 
