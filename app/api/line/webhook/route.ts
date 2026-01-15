@@ -16,11 +16,27 @@ import type { WebhookEvent, MessageEvent, TextEventMessage } from '@line/bot-sdk
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
 
+// GET リクエストには200を返す（検証用）
+export async function GET() {
+  return NextResponse.json({ 
+    status: 'ok', 
+    message: 'LINE Webhook endpoint is ready',
+    timestamp: new Date().toISOString()
+  });
+}
+
 export async function POST(req: Request) {
+  console.log('=== LINE Webhook POST request received ===');
+  console.log('Request method:', req.method);
+  console.log('Request URL:', req.url);
+  
   try {
     // 1. 署名検証
     const signature = req.headers.get('x-line-signature');
     const body = await req.text();
+    
+    console.log('Signature:', signature ? 'Present' : 'Missing');
+    console.log('Body length:', body.length);
 
     if (!signature) {
       console.error('No signature header');
@@ -29,14 +45,20 @@ export async function POST(req: Request) {
     }
 
     const channelSecret = process.env.LINE_CHANNEL_SECRET || '';
+    console.log('Channel secret exists:', !!channelSecret);
+    
     if (!verifySignature(body, signature, channelSecret)) {
       console.error('Invalid signature');
       // LINE Webhookは常に200を返す必要がある
       return NextResponse.json({ success: false, error: 'Invalid signature' }, { status: 200 });
     }
+    
+    console.log('Signature verified successfully');
 
     // 2. イベント処理
     const events: WebhookEvent[] = JSON.parse(body).events;
+    console.log('Number of events:', events.length);
+    
     const client = createLineClient();
 
     for (const event of events) {
@@ -138,9 +160,12 @@ export async function POST(req: Request) {
       }
     }
 
+    console.log('=== Webhook processing completed successfully ===');
     return NextResponse.json({ success: true });
   } catch (error: any) {
-    console.error('Webhook error:', error);
+    console.error('=== Webhook error ===');
+    console.error('Error:', error);
+    console.error('Stack:', error.stack);
     // LINE Webhookは常に200を返す必要がある（エラー時も）
     // エラーはログに記録し、LINEには成功として返す
     return NextResponse.json({ 
