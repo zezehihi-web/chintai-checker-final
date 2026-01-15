@@ -12,6 +12,10 @@ import { createLineClient } from '@/lib/line-client';
 import { getUserCases, setActiveCase, getActiveCase } from '@/lib/kv';
 import type { WebhookEvent, MessageEvent, TextEventMessage } from '@line/bot-sdk';
 
+// LINE WebhookはPOSTのみ受け付ける
+export const dynamic = 'force-dynamic';
+export const runtime = 'nodejs';
+
 export async function POST(req: Request) {
   try {
     // 1. 署名検証
