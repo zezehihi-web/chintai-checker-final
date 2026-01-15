@@ -41,9 +41,14 @@ export default function LiffLinkPage() {
           throw new Error('LIFF IDが設定されていません');
         }
 
-        console.log('Initializing LIFF...');
-        await window.liff.init({ liffId });
-        console.log('LIFF initialized successfully');
+        console.log('Initializing LIFF with ID:', liffId);
+        try {
+          await window.liff.init({ liffId });
+          console.log('LIFF initialized successfully');
+        } catch (initError: any) {
+          console.error('LIFF init error:', initError);
+          throw new Error(`LIFF初期化エラー: ${initError.message || '不明なエラー'}`);
+        }
 
         // ログインチェック
         const isLoggedIn = window.liff.isLoggedIn();
@@ -111,23 +116,29 @@ export default function LiffLinkPage() {
     }
 
     // LIFF SDKが読み込まれるまで待機
-    if (typeof window !== 'undefined' && window.liff) {
-      initLiff();
-    } else {
-      // 最大5秒待機
-      let attempts = 0;
-      const checkLiff = setInterval(() => {
-        attempts++;
-        if (window.liff) {
-          clearInterval(checkLiff);
-          initLiff();
-        } else if (attempts > 50) {
-          // 5秒経過
-          clearInterval(checkLiff);
-          setStatus('error');
-          setErrorMessage('LIFF SDKの読み込みに失敗しました');
-        }
-      }, 100);
+    if (typeof window !== 'undefined') {
+      if (window.liff) {
+        console.log('LIFF SDK already loaded');
+        initLiff();
+      } else {
+        console.log('Waiting for LIFF SDK to load...');
+        // 最大10秒待機（LIFF SDKの読み込みに時間がかかる場合がある）
+        let attempts = 0;
+        const checkLiff = setInterval(() => {
+          attempts++;
+          if (window.liff) {
+            console.log('LIFF SDK loaded after', attempts * 100, 'ms');
+            clearInterval(checkLiff);
+            initLiff();
+          } else if (attempts > 100) {
+            // 10秒経過
+            console.error('LIFF SDK loading timeout');
+            clearInterval(checkLiff);
+            setStatus('error');
+            setErrorMessage('LIFF SDKの読み込みに失敗しました。ページを再読み込みしてください。');
+          }
+        }, 100);
+      }
     }
   }, []);
 
