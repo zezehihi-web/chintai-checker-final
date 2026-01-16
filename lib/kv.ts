@@ -54,7 +54,7 @@ export async function createCase(result: any): Promise<string> {
   await kv.setex(
     `case:${caseId}`,
     30 * 24 * 60 * 60,
-    JSON.stringify(caseData)
+    caseData
   );
 
   return caseId;
@@ -73,10 +73,10 @@ export async function createCaseToken(caseId: string): Promise<string> {
   await kv.setex(
     `caseToken:${token}`,
     600,
-    JSON.stringify({
+    {
       case_id: caseId,
       created_at: Date.now(),
-    })
+    }
   );
 
   return token;
@@ -89,7 +89,7 @@ export async function createCaseToken(caseId: string): Promise<string> {
  */
 export async function consumeCaseToken(token: string): Promise<string | null> {
   const key = `caseToken:${token}`;
-  const data = await kv.get<string>(key);
+  const data = await kv.get<{ case_id: string; created_at: number }>(key);
 
   if (!data) {
     return null; // トークンが存在しない or 期限切れ
@@ -98,8 +98,7 @@ export async function consumeCaseToken(token: string): Promise<string | null> {
   // トークンを削除（ワンタイム）
   await kv.del(key);
 
-  const parsed = JSON.parse(data);
-  return parsed.case_id;
+  return data.case_id;
 }
 
 /**
@@ -109,21 +108,20 @@ export async function consumeCaseToken(token: string): Promise<string | null> {
  */
 export async function linkCaseToUser(caseId: string, lineUserId: string): Promise<void> {
   // 案件データを取得
-  const caseData = await kv.get<string>(`case:${caseId}`);
+  const caseData = await kv.get<CaseData>(`case:${caseId}`);
   if (!caseData) {
     throw new Error('Case not found');
   }
 
-  const parsedCase: CaseData = JSON.parse(caseData);
-  parsedCase.line_user_id = lineUserId;
+  caseData.line_user_id = lineUserId;
 
   // 案件データを更新
   const ttl = await kv.ttl(`case:${caseId}`);
-  await kv.setex(`case:${caseId}`, ttl > 0 ? ttl : 30 * 24 * 60 * 60, JSON.stringify(parsedCase));
+  await kv.setex(`case:${caseId}`, ttl > 0 ? ttl : 30 * 24 * 60 * 60, caseData);
 
   // LINEユーザーが存在しない場合は作成
   const userKey = `lineUser:${lineUserId}`;
-  const existingUser = await kv.get<string>(userKey);
+  const existingUser = await kv.get<LineUser>(userKey);
 
   if (!existingUser) {
     const lineUser: LineUser = {
@@ -131,22 +129,20 @@ export async function linkCaseToUser(caseId: string, lineUserId: string): Promis
       created_at: new Date().toISOString(),
       last_active_at: new Date().toISOString(),
     };
-    await kv.set(userKey, JSON.stringify(lineUser));
+    await kv.set(userKey, lineUser);
   } else {
     // 最終アクティブ日時を更新
-    const user: LineUser = JSON.parse(existingUser);
-    user.last_active_at = new Date().toISOString();
-    await kv.set(userKey, JSON.stringify(user));
+    existingUser.last_active_at = new Date().toISOString();
+    await kv.set(userKey, existingUser);
   }
 
   // ユーザーの案件リストに追加
   const userCasesKey = `userCases:${lineUserId}`;
-  const userCasesData = await kv.get<string>(userCasesKey);
+  const userCasesData = await kv.get<{ case_ids: string[] }>(userCasesKey);
   let caseIds: string[] = [];
 
   if (userCasesData) {
-    const parsed = JSON.parse(userCasesData);
-    caseIds = parsed.case_ids || [];
+    caseIds = userCasesData.case_ids || [];
   }
 
   // 既に存在しない場合のみ追加（先頭に追加＝新しい順）
@@ -158,7 +154,7 @@ export async function linkCaseToUser(caseId: string, lineUserId: string): Promis
       caseIds = caseIds.slice(0, 100);
     }
 
-    await kv.set(userCasesKey, JSON.stringify({ case_ids: caseIds }));
+    await kv.set(userCasesKey, { case_ids: caseIds });
   }
 }
 
@@ -170,28 +166,26 @@ export async function linkCaseToUser(caseId: string, lineUserId: string): Promis
  */
 export async function getUserCases(lineUserId: string, limit: number = 5): Promise<CaseData[]> {
   const userCasesKey = `userCases:${lineUserId}`;
-  const userCasesData = await kv.get<string>(userCasesKey);
+  const userCasesData = await kv.get<{ case_ids: string[] }>(userCasesKey);
 
   if (!userCasesData) {
     return [];
   }
 
-  const parsed = JSON.parse(userCasesData);
-  const caseIds: string[] = parsed.case_ids || [];
+  const caseIds: string[] = userCasesData.case_ids || [];
 
   // limitまでの案件を取得
   const limitedIds = caseIds.slice(0, limit);
   const cases: CaseData[] = [];
 
   for (const caseId of limitedIds) {
-    const caseData = await kv.get<string>(`case:${caseId}`);
+    const caseData = await kv.get<CaseData>(`case:${caseId}`);
     if (caseData) {
-      const parsedCase: CaseData = JSON.parse(caseData);
       // 自分の案件かつ有効期限内のもののみ
-      if (parsedCase.line_user_id === lineUserId) {
-        const expiresAt = new Date(parsedCase.expires_at);
+      if (caseData.line_user_id === lineUserId) {
+        const expiresAt = new Date(caseData.expires_at);
         if (expiresAt > new Date()) {
-          cases.push(parsedCase);
+          cases.push(caseData);
         }
       }
     }
@@ -207,13 +201,12 @@ export async function getUserCases(lineUserId: string, limit: number = 5): Promi
  */
 export async function setActiveCase(lineUserId: string, caseId: string): Promise<void> {
   // 案件が存在し、かつユーザーに紐づいているか確認
-  const caseData = await kv.get<string>(`case:${caseId}`);
+  const caseData = await kv.get<CaseData>(`case:${caseId}`);
   if (!caseData) {
     throw new Error('Case not found');
   }
 
-  const parsedCase: CaseData = JSON.parse(caseData);
-  if (parsedCase.line_user_id !== lineUserId) {
+  if (caseData.line_user_id !== lineUserId) {
     throw new Error('Unauthorized: Case does not belong to this user');
   }
 
@@ -222,7 +215,7 @@ export async function setActiveCase(lineUserId: string, caseId: string): Promise
     updated_at: new Date().toISOString(),
   };
 
-  await kv.set(`activeCase:${lineUserId}`, JSON.stringify(activeCase));
+  await kv.set(`activeCase:${lineUserId}`, activeCase);
 }
 
 /**
@@ -231,32 +224,29 @@ export async function setActiveCase(lineUserId: string, caseId: string): Promise
  * @returns 案件データ（存在しない場合はnull）
  */
 export async function getActiveCase(lineUserId: string): Promise<CaseData | null> {
-  const activeCaseData = await kv.get<string>(`activeCase:${lineUserId}`);
+  const activeCaseData = await kv.get<ActiveCase>(`activeCase:${lineUserId}`);
 
   if (!activeCaseData) {
     return null;
   }
 
-  const activeCase: ActiveCase = JSON.parse(activeCaseData);
-  const caseData = await kv.get<string>(`case:${activeCase.case_id}`);
+  const caseData = await kv.get<CaseData>(`case:${activeCaseData.case_id}`);
 
   if (!caseData) {
     return null;
   }
 
-  const parsedCase: CaseData = JSON.parse(caseData);
-
   // セキュリティチェック: 自分の案件かつ有効期限内
-  if (parsedCase.line_user_id !== lineUserId) {
+  if (caseData.line_user_id !== lineUserId) {
     return null;
   }
 
-  const expiresAt = new Date(parsedCase.expires_at);
+  const expiresAt = new Date(caseData.expires_at);
   if (expiresAt <= new Date()) {
     return null; // 期限切れ
   }
 
-  return parsedCase;
+  return caseData;
 }
 
 /**
@@ -265,13 +255,13 @@ export async function getActiveCase(lineUserId: string): Promise<CaseData | null
  * @returns 案件データ（存在しない場合はnull）
  */
 export async function getCase(caseId: string): Promise<CaseData | null> {
-  const caseData = await kv.get<string>(`case:${caseId}`);
+  const caseData = await kv.get<CaseData>(`case:${caseId}`);
 
   if (!caseData) {
     return null;
   }
 
-  return JSON.parse(caseData);
+  return caseData;
 }
 
 /**
