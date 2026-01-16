@@ -70,7 +70,7 @@ export async function POST(req: Request) {
       });
     }
 
-    const primaryModel = process.env.GEMINI_MODEL_NAME || "gemini-2.5-flash";
+    const primaryModel = process.env.GEMINI_MODEL_NAME || "gemini-2.5-pro";
     
     // ========================================
     // 【第1段階】画像の種類を判定
