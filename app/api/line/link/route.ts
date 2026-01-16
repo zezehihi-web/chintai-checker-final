@@ -61,14 +61,33 @@ export async function POST(req: Request) {
     await setActiveCase(lineUserId, caseId);
 
     // 6. 案件データを取得して診断結果の詳細メッセージを送信
+    // 友だち追加状態を確認してからメッセージを送信
     try {
+      const client = createLineClient();
+      
+      // 友だち追加状態を確認（プロフィール取得で確認）
+      // 友だち追加されていない場合、getProfileはエラーを返す
+      try {
+        await client.getProfile(lineUserId);
+      } catch (profileError: any) {
+        // 友だち追加されていない場合はエラーを返す
+        console.warn('User is not a friend:', profileError);
+        // 連携自体は成功しているので、案件IDは返すが、メッセージ送信はスキップ
+        return NextResponse.json({
+          success: true,
+          caseId,
+          requires_friend_add: true,
+          friend_add_url: process.env.NEXT_PUBLIC_LINE_URL || 'https://lin.ee/Hnl9hkO',
+          message: '友だち追加が必要です。友だち追加後、もう一度お試しください。'
+        });
+      }
+
       const caseData = await getCase(caseId);
       if (!caseData) {
         throw new Error('Case data not found');
       }
 
       const result = caseData.result;
-      const client = createLineClient();
 
       // 裏コマンド（占いモード）の場合
       if (result.is_secret_mode) {
@@ -122,8 +141,26 @@ export async function POST(req: Request) {
         });
       }
     } catch (messageError: any) {
-      // メッセージ送信が失敗しても連携は成功しているので、エラーはログに記録するだけ
-      console.warn('Failed to send LINE message:', messageError);
+      // メッセージ送信が失敗した場合
+      console.error('Failed to send LINE message:', messageError);
+      
+      // 友だち追加が必要なエラーの場合（LINE APIのエラーコード確認）
+      const errorMessage = messageError.message || '';
+      const errorStatus = messageError.status || messageError.statusCode || 0;
+      
+      if (errorStatus === 400 || errorMessage.includes('友だち追加') || errorMessage.includes('not a friend')) {
+        // 連携自体は成功しているので、案件IDは返すが、メッセージ送信はスキップ
+        return NextResponse.json({
+          success: true,
+          caseId,
+          requires_friend_add: true,
+          friend_add_url: process.env.NEXT_PUBLIC_LINE_URL || 'https://lin.ee/Hnl9hkO',
+          message: '友だち追加が必要です。友だち追加後、もう一度お試しください。'
+        });
+      }
+      
+      // その他のエラーはログに記録するだけ（連携は成功している）
+      console.warn('Message send failed but linking succeeded:', messageError);
     }
 
     return NextResponse.json({

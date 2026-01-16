@@ -60,7 +60,18 @@ export default function LiffLinkPage() {
       console.log('Response data:', data);
 
       if (!res.ok) {
+        // 友だち追加が必要なエラーの場合
+        if (data.requires_friend_add) {
+          setStatus('need_friend_add');
+          return;
+        }
         throw new Error(data.error || 'サーバーエラー');
+      }
+
+      // 友だち追加が必要な場合（連携は成功しているがメッセージ送信がスキップされた）
+      if (data.requires_friend_add) {
+        setStatus('need_friend_add');
+        return;
       }
 
       console.log('Link successful!');
