@@ -1096,7 +1096,7 @@ export default function Home() {
             </p>
             {/* LINE登録ボタン（小さめ） */}
             <a 
-              href={process.env.NEXT_PUBLIC_LINE_URL || "https://lin.ee/DPUjEfr"} 
+              href={process.env.NEXT_PUBLIC_LINE_URL || "https://lin.ee/Hnl9hkO"} 
               target="_blank" 
               rel="noopener noreferrer" 
               className="inline-flex items-center gap-2 bg-gradient-to-r from-[#06C755] to-[#05b34c] hover:from-[#05b34c] hover:to-[#04a042] text-white font-bold py-2 px-4 rounded-lg text-xs md:text-sm shadow-md hover:shadow-lg transition-all hover:scale-105"
@@ -1648,7 +1648,7 @@ export default function Home() {
               <p className="font-bold mb-1">💡 まだLINE Botを追加していない方へ</p>
               <p className="text-green-400 mb-2">上記のボタンを押す前に、まず公式LINE Botを友だち追加してください。</p>
               <a
-                href="https://lin.ee/UK6DCAl"
+                href="https://lin.ee/Hnl9hkO"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 text-green-400 hover:text-green-300 font-bold underline"
