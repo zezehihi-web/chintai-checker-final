@@ -44,3 +44,7 @@ next-env.d.ts
 *.zip
 debug.log
 chintai-final-for-notebooklm.zip
+
+# sensitive documentation (contains API keys)
+VERCEL_ENV_SETUP.md
+LINE_INTEGRATION_TROUBLESHOOTING.md
