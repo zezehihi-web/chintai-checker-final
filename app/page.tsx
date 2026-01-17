@@ -1426,7 +1426,7 @@ export default function Home() {
                   disabled={isCreatingShare}
                   className="bg-[#06C755] text-white py-3 rounded-xl font-bold text-sm shadow-md hover:bg-[#05b34c] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {isCreatingShare ? "⏳" : "📱"} {isCreatingShare ? "準備中..." : "LINEでシェア"}
+                  {isCreatingShare ? "⏳" : "📱"} {isCreatingShare ? "準備中..." : "LINEで友達にシェア"}
                 </button>
                 <button 
                   onClick={handleCopyLink} 
@@ -1599,7 +1599,7 @@ export default function Home() {
               disabled={isCreatingShare}
               className="bg-[#06C755] text-white py-3 rounded-xl font-bold text-sm shadow-md hover:bg-[#05b34c] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
-              {isCreatingShare ? "⏳" : "📱"} {isCreatingShare ? "準備中..." : "LINEでシェア"}
+              {isCreatingShare ? "⏳" : "📱"} {isCreatingShare ? "準備中..." : "LINEで友達にシェア"}
             </button>
             <button 
               onClick={handleCopyLink} 
@@ -1607,31 +1607,6 @@ export default function Home() {
               className="col-span-2 bg-slate-700 text-slate-200 font-bold text-sm py-3 rounded-xl hover:bg-slate-600 border border-slate-600 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isCreatingShare ? "⏳ 準備中..." : isCopied ? "✨ コピーしました！" : "🔗 共有用リンクをコピー"}
-            </button>
-            {/* LINE連携ボタン */}
-            <button 
-              onClick={handleLineLink} 
-              disabled={isCreatingLineLink}
-              className="col-span-2 bg-gradient-to-r from-[#06C755] to-[#05b34c] text-white py-4 rounded-xl font-black text-base shadow-lg hover:from-[#05b34c] hover:to-[#04a042] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 transition-all hover:scale-[1.02] relative overflow-hidden group"
-              style={{
-                boxShadow: '0 10px 30px rgba(6, 199, 85, 0.3)'
-              }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-              <div className="relative z-10 flex items-center gap-3">
-                <div className="w-6 h-6 flex items-center justify-center">
-                  {isCreatingLineLink ? (
-                    <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
-                  ) : (
-                    <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-                      <path d="M12 2C6.48 2 2 5.56 2 10.1c0 2.45 1.3 4.63 3.4 6.1-.15.8-.5 2.15-.56 2.47-.05.24.1.47.34.47.1 0 .2-.03.27-.08.05-.03 2.6-1.73 3.63-2.45.62.17 1.28.26 1.95.26 5.52 0 10-3.56 10-8.1S17.52 2 12 2z"/>
-                    </svg>
-                  )}
-                </div>
-                <span className="tracking-wide">
-                  {isCreatingLineLink ? "準備中..." : "LINEで続きを確認"}
-                </span>
-              </div>
             </button>
             {shareId && (
               <div className="col-span-2 bg-blue-500/20 border border-blue-500/30 rounded-xl p-3 text-xs text-blue-300">
@@ -1735,6 +1710,29 @@ export default function Home() {
                     最安値プランをご提案
                   </p>
                 </div>
+                {/* LINE連携ボタン */}
+                <button 
+                  onClick={handleLineLink} 
+                  disabled={isCreatingLineLink}
+                  className="flex-shrink-0 bg-gradient-to-r from-[#06C755] to-[#05b34c] hover:from-[#05b34c] hover:to-[#04a042] text-white font-black py-5 px-10 rounded-2xl shadow-2xl shadow-green-500/30 transition-all hover:scale-105 hover:shadow-green-500/50 flex items-center gap-3 text-lg relative overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    boxShadow: '0 10px 30px rgba(6, 199, 85, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                  <div className="relative z-10 w-8 h-8 flex items-center justify-center">
+                    {isCreatingLineLink ? (
+                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white"></div>
+                    ) : (
+                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7 relative z-10 drop-shadow-lg" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}>
+                        <path d="M12 2C6.48 2 2 5.56 2 10.1c0 2.45 1.3 4.63 3.4 6.1-.15.8-.5 2.15-.56 2.47-.05.24.1.47.34.47.1 0 .2-.03.27-.08.05-.03 2.6-1.73 3.63-2.45.62.17 1.28.26 1.95.26 5.52 0 10-3.56 10-8.1S17.52 2 12 2z"/>
+                      </svg>
+                    )}
+                  </div>
+                  <span className="relative z-10 tracking-wide">
+                    {isCreatingLineLink ? "準備中..." : "LINEで続きを確認"}
+                  </span>
+                </button>
              </div>
              <div className="relative z-10 mt-6 pt-6 border-t border-slate-700">
                 <div className="flex flex-wrap gap-2 md:gap-4 text-[10px] md:text-sm justify-center md:justify-start">
