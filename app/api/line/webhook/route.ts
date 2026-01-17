@@ -63,12 +63,116 @@ export async function POST(req: Request) {
     const client = createLineClient();
 
     for (const event of events) {
-      // follow イベント（友だち追加）
+      // follow イベント（友だち追加・ブロック解除）
       if (event.type === 'follow') {
-        await client.replyMessage(event.replyToken, {
-          type: 'text',
-          text: '友だち追加ありがとうございます！\n\n賃貸初期費用AI診断の結果をこちらで確認できます。\n\n診断ページで「LINEで続き」ボタンを押して連携してください。',
-        });
+        const userId = event.source.userId;
+        if (!userId) continue;
+
+        // 以前の案件があるか確認
+        const userCases = await getUserCases(userId, 1); // 最新1件を取得
+        
+        if (userCases.length > 0) {
+          // 以前の案件がある場合 → 最新の案件の診断結果を自動送信
+          const latestCase = userCases[0];
+          const result = latestCase.result;
+          
+          // アクティブ案件に設定
+          await setActiveCase(userId, latestCase.case_id);
+          
+          // 診断結果を送信
+          if (result.is_secret_mode) {
+            // 裏コマンド（占いモード）の場合
+            const message = `✨ ${result.fortune_title || 'スペシャル診断'}\n\n${result.fortune_summary || ''}\n\n「履歴」と送信すると、いつでも結果を確認できます。`;
+            await client.replyMessage(event.replyToken, {
+              type: 'text',
+              text: message,
+            });
+          } else {
+            // 通常の診断結果
+            let message = `✅ 診断結果を引き継ぎました！\n\n`;
+            message += `【物件情報】\n`;
+            message += `${result.property_name || '物件名不明'}`;
+            if (result.room_number) {
+              message += ` ${result.room_number}`;
+            }
+            message += `\n\n`;
+            message += `【診断サマリー】\n`;
+            message += `見積書合計: ${result.total_original?.toLocaleString() || '0'}円\n`;
+            message += `適正価格: ${result.total_fair?.toLocaleString() || '0'}円\n`;
+            message += `💰 削減可能額: ${result.discount_amount?.toLocaleString() || '0'}円\n`;
+            message += `⚠️ リスクスコア: ${result.risk_score || 0}点\n\n`;
+
+            // 削減可能な項目を抽出
+            const cutItems = result.items?.filter((item: any) => item.status === 'cut') || [];
+            const negotiableItems = result.items?.filter((item: any) => item.status === 'negotiable') || [];
+
+            if (cutItems.length > 0) {
+              message += `【削減可能項目】\n`;
+              cutItems.forEach((item: any) => {
+                message += `❌ ${item.name}: ${item.price_original?.toLocaleString() || 0}円\n`;
+                message += `   → ${item.reason}\n`;
+              });
+              message += `\n`;
+            }
+
+            if (negotiableItems.length > 0) {
+              message += `【交渉推奨項目】\n`;
+              negotiableItems.forEach((item: any) => {
+                message += `⚡ ${item.name}: ${item.price_original?.toLocaleString() || 0}円\n`;
+                message += `   → ${item.reason}\n`;
+              });
+              message += `\n`;
+            }
+
+            message += `「履歴」と送信すると、いつでも詳細を確認できます。`;
+
+            await client.pushMessage(userId, {
+              type: 'text',
+              text: message,
+            });
+
+            // 診断結果送信後、すぐに物件確認の質問を送信（通常診断の場合のみ）
+            const propertyName = result.property_name || '物件名不明';
+            const roomNumber = result.room_number || '';
+            const propertyDisplay = roomNumber ? `${propertyName} ${roomNumber}` : propertyName;
+
+            // 会話状態を保存
+            await setConversationState(userId, 'property_confirm', latestCase.case_id);
+
+            // ボタンテンプレートメッセージで物件確認の質問を送信
+            await client.pushMessage(userId, {
+              type: 'template',
+              altText: '確認する物件はこの物件で合ってますか？',
+              template: {
+                type: 'buttons',
+                text: `確認する物件はこの物件で合ってますか？\n\n${propertyDisplay}`,
+                actions: [
+                  {
+                    type: 'message',
+                    label: 'はい',
+                    text: `PROPERTY_CONFIRM_YES:${latestCase.case_id}`,
+                  },
+                  {
+                    type: 'message',
+                    label: 'いいえ',
+                    text: `PROPERTY_CONFIRM_NO:${latestCase.case_id}`,
+                  },
+                  {
+                    type: 'message',
+                    label: '相談したい',
+                    text: `PROPERTY_CONFIRM_CONSULT:${latestCase.case_id}`,
+                  },
+                ],
+              },
+            });
+          }
+        } else {
+          // 以前の案件がない場合（新規ユーザー）
+          await client.replyMessage(event.replyToken, {
+            type: 'text',
+            text: '友だち追加ありがとうございます！\n\n賃貸初期費用AI診断の結果をこちらで確認できます。\n\n診断ページで「LINEで続き」ボタンを押して連携してください。',
+          });
+        }
         continue;
       }
 
