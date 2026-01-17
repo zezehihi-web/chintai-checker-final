@@ -248,10 +248,16 @@ export async function POST(req: Request) {
         } else {
           // 以前の案件がない場合（新規ユーザー）
           console.log(`[Follow event] No previous cases found for user ${userId}, sending welcome message`);
-          await client.replyMessage(event.replyToken, {
-            type: 'text',
-            text: '友だち追加ありがとうございます！\n\n賃貸初期費用AI診断の結果をこちらで確認できます。\n\n診断ページで「LINEで続き」ボタンを押して連携してください。',
-          });
+          
+          try {
+            await client.replyMessage(event.replyToken, {
+              type: 'text',
+              text: '友だち追加ありがとうございます！🎉\n\n賃貸初期費用AI診断の結果をこちらで確認できます。\n\n診断ページで「LINEで続きを確認」ボタンを押して連携してください。',
+            });
+            console.log(`[Follow event] Welcome message sent to user ${userId}`);
+          } catch (error: any) {
+            console.error(`[Follow event] Failed to send welcome message to user ${userId}:`, error);
+          }
         }
         continue;
       }
