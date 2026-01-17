@@ -159,30 +159,89 @@ export async function POST(req: Request) {
             // 会話状態を保存
             await setConversationState(userId, 'property_confirm', latestCase.case_id);
 
-            // ボタンテンプレートメッセージで物件確認の質問を送信
+            // Flex Messageで物件確認の質問を送信（おしゃれなデザイン）
             await client.pushMessage(userId, {
-              type: 'template',
+              type: 'flex',
               altText: '確認する物件はこの物件で合ってますか？',
-              template: {
-                type: 'buttons',
-                text: `確認する物件はこの物件で合ってますか？\n\n${propertyDisplay}`,
-                actions: [
-                  {
-                    type: 'message',
-                    label: 'はい',
-                    text: 'はい',
+              contents: {
+                type: 'bubble',
+                body: {
+                  type: 'box',
+                  layout: 'vertical',
+                  contents: [
+                    {
+                      type: 'text',
+                      text: '物件の確認',
+                      weight: 'bold',
+                      size: 'xl',
+                      color: '#333333',
+                      margin: 'md',
+                      align: 'center',
+                    },
+                    {
+                      type: 'text',
+                      text: propertyDisplay,
+                      size: 'lg',
+                      color: '#666666',
+                      margin: 'sm',
+                      align: 'center',
+                      wrap: true,
+                    },
+                    {
+                      type: 'separator',
+                      margin: 'lg',
+                    },
+                    {
+                      type: 'box',
+                      layout: 'horizontal',
+                      spacing: 'sm',
+                      margin: 'lg',
+                      contents: [
+                        {
+                          type: 'button',
+                          style: 'primary',
+                          color: '#007AFF',
+                          height: 'sm',
+                          action: {
+                            type: 'message',
+                            label: 'はい',
+                            text: 'はい',
+                          },
+                          flex: 1,
+                        },
+                        {
+                          type: 'button',
+                          style: 'secondary',
+                          color: '#808080',
+                          height: 'sm',
+                          action: {
+                            type: 'message',
+                            label: 'いいえ',
+                            text: 'いいえ',
+                          },
+                          flex: 1,
+                        },
+                      ],
+                    },
+                    {
+                      type: 'button',
+                      style: 'primary',
+                      color: '#FF9500',
+                      height: 'sm',
+                      action: {
+                        type: 'message',
+                        label: '相談したい',
+                        text: '相談したい',
+                      },
+                      margin: 'md',
+                    },
+                  ],
+                },
+                styles: {
+                  body: {
+                    backgroundColor: '#FFFFFF',
                   },
-                  {
-                    type: 'message',
-                    label: 'いいえ',
-                    text: 'いいえ',
-                  },
-                  {
-                    type: 'message',
-                    label: '相談したい',
-                    text: '相談したい',
-                  },
-                ],
+                },
               },
             });
             
@@ -218,28 +277,87 @@ export async function POST(req: Request) {
             await setConversationState(userId, 'application_intent', caseId);
             
             await client.replyMessage(event.replyToken, {
-              type: 'template',
+              type: 'flex',
               altText: '申し込みを希望しますか？',
-              template: {
-                type: 'buttons',
-                text: '申し込みを希望しますか？',
-                actions: [
-                  {
-                    type: 'message',
-                    label: '申し込みする',
-                    text: '申し込みする',
+              contents: {
+                type: 'bubble',
+                body: {
+                  type: 'box',
+                  layout: 'vertical',
+                  contents: [
+                    {
+                      type: 'text',
+                      text: '申し込みについて',
+                      weight: 'bold',
+                      size: 'xl',
+                      color: '#333333',
+                      margin: 'md',
+                      align: 'center',
+                    },
+                    {
+                      type: 'text',
+                      text: '申し込みを希望しますか？',
+                      size: 'md',
+                      color: '#666666',
+                      margin: 'sm',
+                      align: 'center',
+                      wrap: true,
+                    },
+                    {
+                      type: 'separator',
+                      margin: 'lg',
+                    },
+                    {
+                      type: 'box',
+                      layout: 'horizontal',
+                      spacing: 'sm',
+                      margin: 'lg',
+                      contents: [
+                        {
+                          type: 'button',
+                          style: 'primary',
+                          color: '#06C755',
+                          height: 'sm',
+                          action: {
+                            type: 'message',
+                            label: '申し込みする',
+                            text: '申し込みする',
+                          },
+                          flex: 1,
+                        },
+                        {
+                          type: 'button',
+                          style: 'secondary',
+                          color: '#808080',
+                          height: 'sm',
+                          action: {
+                            type: 'message',
+                            label: '申し込みしない',
+                            text: '申し込みしない',
+                          },
+                          flex: 1,
+                        },
+                      ],
+                    },
+                    {
+                      type: 'button',
+                      style: 'primary',
+                      color: '#FF9500',
+                      height: 'sm',
+                      action: {
+                        type: 'message',
+                        label: '相談したい',
+                        text: '相談したい',
+                      },
+                      margin: 'md',
+                    },
+                  ],
+                },
+                styles: {
+                  body: {
+                    backgroundColor: '#FFFFFF',
                   },
-                  {
-                    type: 'message',
-                    label: '申し込みしない',
-                    text: '申し込みしない',
-                  },
-                  {
-                    type: 'message',
-                    label: '相談したい',
-                    text: '相談したい',
-                  },
-                ],
+                },
               },
             });
             continue;
