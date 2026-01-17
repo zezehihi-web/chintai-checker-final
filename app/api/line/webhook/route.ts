@@ -536,8 +536,8 @@ export async function POST(req: Request) {
         const userId = event.source.userId;
         if (!userId) continue;
 
-        const conversationState = await getConversationState(userId);
-        if (conversationState && conversationState.step === 'waiting_images') {
+        const imageConversationState = await getConversationState(userId);
+        if (imageConversationState && imageConversationState.step === 'waiting_images') {
           // 画像受信を確認（通知のみ）
           await client.replyMessage(event.replyToken, {
             type: 'text',
