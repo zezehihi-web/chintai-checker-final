@@ -893,7 +893,8 @@ export default function Home() {
       
       if (timerRef.current) clearTimeout(timerRef.current);
       if (elapsedTimerRef.current) clearTimeout(elapsedTimerRef.current);
-      
+      cleanupMessageTimer();
+
       setLoadingProgress(100);
       setLoadingStep("✨ 診断完了！");
       setTimeout(() => {
@@ -906,6 +907,7 @@ export default function Home() {
     } catch (error: unknown) {
       if (timerRef.current) clearTimeout(timerRef.current);
       if (elapsedTimerRef.current) clearTimeout(elapsedTimerRef.current);
+      cleanupMessageTimer();
       const errorMsg = error instanceof Error ? error.message : "解析に失敗しました。";
       setErrorMessage(errorMsg);
       setIsLoading(false);
