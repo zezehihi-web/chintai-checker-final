@@ -149,6 +149,7 @@ export async function POST(req: Request) {
         await setConversationState(lineUserId, 'property_confirm', caseId);
 
         // ボタンテンプレートメッセージで物件確認の質問を送信
+        // messageアクションを使用（より確実に動作する）
         await client.pushMessage(lineUserId, {
           type: 'template',
           altText: '確認する物件はこの物件で合ってますか？',
@@ -157,19 +158,19 @@ export async function POST(req: Request) {
             text: `確認する物件はこの物件で合ってますか？\n\n${propertyDisplay}`,
             actions: [
               {
-                type: 'postback',
+                type: 'message',
                 label: 'はい',
-                data: `action=property_confirm&value=yes&caseId=${caseId}`,
+                text: `PROPERTY_CONFIRM_YES:${caseId}`,
               },
               {
-                type: 'postback',
+                type: 'message',
                 label: 'いいえ',
-                data: `action=property_confirm&value=no&caseId=${caseId}`,
+                text: `PROPERTY_CONFIRM_NO:${caseId}`,
               },
               {
-                type: 'postback',
+                type: 'message',
                 label: '相談したい',
-                data: `action=property_confirm&value=consult&caseId=${caseId}`,
+                text: `PROPERTY_CONFIRM_CONSULT:${caseId}`,
               },
             ],
           },

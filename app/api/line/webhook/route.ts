@@ -79,6 +79,120 @@ export async function POST(req: Request) {
 
         const messageText = event.message.text.trim();
 
+        // ボタンからのメッセージアクションを処理
+        // PROPERTY_CONFIRM_YES:xxx, PROPERTY_CONFIRM_NO:xxx, PROPERTY_CONFIRM_CONSULT:xxx
+        if (messageText.startsWith('PROPERTY_CONFIRM_')) {
+          const parts = messageText.split(':');
+          if (parts.length === 2) {
+            const actionPart = parts[0]; // PROPERTY_CONFIRM_YES, PROPERTY_CONFIRM_NO, PROPERTY_CONFIRM_CONSULT
+            const caseId = parts[1];
+
+            if (actionPart === 'PROPERTY_CONFIRM_YES') {
+              // 「はい」が選択された場合 → 申し込み希望を聞く
+              await setConversationState(userId, 'application_intent', caseId);
+              
+              await client.replyMessage(event.replyToken, {
+                type: 'template',
+                altText: '申し込みを希望しますか？',
+                template: {
+                  type: 'buttons',
+                  text: '申し込みを希望しますか？',
+                  actions: [
+                    {
+                      type: 'message',
+                      label: '申し込みする',
+                      text: `APPLICATION_INTENT_YES:${caseId}`,
+                    },
+                    {
+                      type: 'message',
+                      label: '申し込みしない',
+                      text: `APPLICATION_INTENT_NO:${caseId}`,
+                    },
+                    {
+                      type: 'message',
+                      label: '相談したい',
+                      text: `APPLICATION_INTENT_CONSULT:${caseId}`,
+                    },
+                  ],
+                },
+              });
+              continue;
+            } else if (actionPart === 'PROPERTY_CONFIRM_NO') {
+              // 「いいえ」が選択された場合 → 画像送信を促す
+              await setConversationState(userId, 'waiting_images', caseId);
+              
+              await client.replyMessage(event.replyToken, {
+                type: 'text',
+                text: 'ごめん、こちらに見積書と図面をLINEのチャットで直接送ってくれない？',
+              });
+              continue;
+            } else if (actionPart === 'PROPERTY_CONFIRM_CONSULT') {
+              // 「相談したい」が選択された場合
+              await setConversationState(userId, 'consultation', caseId);
+              
+              await client.replyMessage(event.replyToken, {
+                type: 'text',
+                text: '了解だよ。じゃあ相談内容をざっくりにメッセージ（LINEのメッセージ）で教えてね。',
+              });
+              continue;
+            }
+          }
+        }
+
+        // APPLICATION_INTENT_YES:xxx, APPLICATION_INTENT_NO:xxx, APPLICATION_INTENT_CONSULT:xxx
+        if (messageText.startsWith('APPLICATION_INTENT_')) {
+          const parts = messageText.split(':');
+          if (parts.length === 2) {
+            const actionPart = parts[0]; // APPLICATION_INTENT_YES, APPLICATION_INTENT_NO, APPLICATION_INTENT_CONSULT
+            const caseId = parts[1];
+
+            if (actionPart === 'APPLICATION_INTENT_YES') {
+              // 「申し込みする」が選択された場合 → 以後手動対応
+              await setConversationState(userId, 'completed', caseId);
+              
+              await client.replyMessage(event.replyToken, {
+                type: 'text',
+                text: '承知しました。担当者より詳細な初期費用の見積もりと申し込み方法について連絡いたします。',
+              });
+              // ここで手動対応の通知（例：エージェントへの通知、管理画面への記録など）
+              console.log(`[Manual action required] User ${userId} wants to apply for case ${caseId}`);
+              continue;
+            } else if (actionPart === 'APPLICATION_INTENT_NO') {
+              // 「申し込みしない」が選択された場合 → 物件探すシステムへのリンク
+              await setConversationState(userId, 'completed', caseId);
+              
+              // スーモのURL（ダミー）
+              const propertySearchUrl = 'https://suumo.jp/chintai/';
+              
+              await client.replyMessage(event.replyToken, {
+                type: 'template',
+                altText: '他の物件を探す',
+                template: {
+                  type: 'buttons',
+                  text: 'そうか、じゃあ他の物件を探せるこちらのAIで物件探すシステムがあるからそちらを使ってね！',
+                  actions: [
+                    {
+                      type: 'uri',
+                      label: '物件を探す',
+                      uri: propertySearchUrl,
+                    },
+                  ],
+                },
+              });
+              continue;
+            } else if (actionPart === 'APPLICATION_INTENT_CONSULT') {
+              // 「相談したい」が選択された場合
+              await setConversationState(userId, 'consultation', caseId);
+              
+              await client.replyMessage(event.replyToken, {
+                type: 'text',
+                text: '了解だよ。じゃあ相談内容をざっくりにメッセージ（LINEのメッセージ）で教えてね。',
+              });
+              continue;
+            }
+          }
+        }
+
         // 「履歴」コマンド
         if (messageText === '履歴' || messageText === 'りれき' || messageText === 'history') {
           const cases = await getUserCases(userId, 5);
