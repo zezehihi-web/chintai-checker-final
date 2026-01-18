@@ -1201,30 +1201,32 @@ export default function Home() {
                       </button>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between gap-2 px-1 md:px-2 py-2 flex-1">
-                      <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0 flex-wrap">
+                    <div className="flex items-center justify-between gap-2 px-1 md:px-2 py-2 flex-1 flex-wrap">
+                      <div className="flex items-center gap-2 md:gap-3 flex-shrink-0 min-w-0">
                       <img 
                         src="/plan-icon.png" 
                           alt="図面" 
-                          className="w-8 h-8 md:w-10 md:h-10 object-contain drop-shadow-md flex-shrink-0"
+                          className="w-12 h-12 md:w-16 md:h-16 object-contain drop-shadow-md flex-shrink-0"
                         />
                         <div className="flex-shrink-0 min-w-0">
-                          <p className="text-slate-300 text-[10px] font-bold whitespace-nowrap">図面全体</p>
-                          <p className="text-slate-500 text-[9px] whitespace-nowrap">物件情報図面</p>
+                          <p className="text-slate-300 text-xs md:text-sm font-bold whitespace-nowrap">図面全体</p>
+                          <p className="text-slate-500 text-[10px] md:text-xs whitespace-nowrap">物件情報図面</p>
                         </div>
                       </div>
-                      <div className="flex gap-1 md:gap-2 flex-shrink-0">
+                      <div className="flex gap-2 md:gap-3 flex-shrink-0 w-full md:w-auto justify-center md:justify-end mt-2 md:mt-0">
                         <button
                           onClick={() => openCamera("plan")}
-                          className="bg-emerald-600/80 hover:bg-emerald-600 text-white font-bold px-2 md:px-3 py-1 md:py-1.5 rounded-lg flex items-center gap-1 text-[10px] md:text-xs transition-all"
+                          className="bg-emerald-600/80 hover:bg-emerald-600 text-white font-bold px-4 md:px-5 py-2.5 md:py-3 rounded-xl flex items-center gap-2 text-sm md:text-base transition-all min-h-[44px] touch-manipulation"
                         >
-                          📷
+                          <span className="text-lg md:text-xl">📷</span>
+                          <span>撮影</span>
                         </button>
                         <button
                           onClick={() => planInputRef.current?.click()}
-                          className="bg-slate-700/80 hover:bg-slate-600 text-white font-bold px-2 md:px-3 py-1 md:py-1.5 rounded-lg flex items-center gap-1 text-[10px] md:text-xs transition-all"
+                          className="bg-slate-700/80 hover:bg-slate-600 text-white font-bold px-4 md:px-5 py-2.5 md:py-3 rounded-xl flex items-center gap-2 text-sm md:text-base transition-all min-h-[44px] touch-manipulation"
                         >
-                          🖼️
+                          <span className="text-lg md:text-xl">🖼️</span>
+                          <span>選択</span>
                         </button>
                       </div>
                       <input
@@ -1256,25 +1258,27 @@ export default function Home() {
                     </div>
                   ) : (
                     <div className="flex items-center justify-between gap-2 px-1 md:px-2 py-2 flex-1 flex-wrap">
-                      <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0 flex-wrap min-w-0">
-                        <span className="text-xl md:text-2xl flex-shrink-0">🔍</span>
+                      <div className="flex items-center gap-2 md:gap-3 flex-shrink-0 min-w-0">
+                        <span className="text-3xl md:text-4xl flex-shrink-0">🔍</span>
                         <div className="flex-shrink-0 min-w-0">
-                          <p className="text-slate-300 text-[10px] font-bold whitespace-nowrap">条件欄拡大撮影</p>
-                          <p className="text-slate-500 text-[9px] whitespace-nowrap">家賃・敷金等拡大</p>
+                          <p className="text-slate-300 text-xs md:text-sm font-bold whitespace-nowrap">条件欄拡大撮影</p>
+                          <p className="text-slate-500 text-[10px] md:text-xs whitespace-nowrap">家賃・敷金等拡大</p>
                         </div>
                       </div>
-                      <div className="flex gap-1 md:gap-2 flex-shrink-0">
+                      <div className="flex gap-2 md:gap-3 flex-shrink-0 w-full md:w-auto justify-center md:justify-end mt-2 md:mt-0">
                         <button
                           onClick={() => openCamera("condition")}
-                          className="bg-emerald-600/80 hover:bg-emerald-600 text-white font-bold px-2 md:px-3 py-1 md:py-1.5 rounded-lg flex items-center gap-1 text-[10px] md:text-xs transition-all"
+                          className="bg-emerald-600/80 hover:bg-emerald-600 text-white font-bold px-4 md:px-5 py-2.5 md:py-3 rounded-xl flex items-center gap-2 text-sm md:text-base transition-all min-h-[44px] touch-manipulation"
                         >
-                          📷
+                          <span className="text-lg md:text-xl">📷</span>
+                          <span>撮影</span>
                         </button>
                         <button
                           onClick={() => conditionInputRef.current?.click()}
-                          className="bg-slate-700/80 hover:bg-slate-600 text-white font-bold px-2 md:px-3 py-1 md:py-1.5 rounded-lg flex items-center gap-1 text-[10px] md:text-xs transition-all"
+                          className="bg-slate-700/80 hover:bg-slate-600 text-white font-bold px-4 md:px-5 py-2.5 md:py-3 rounded-xl flex items-center gap-2 text-sm md:text-base transition-all min-h-[44px] touch-manipulation"
                         >
-                          🖼️
+                          <span className="text-lg md:text-xl">🖼️</span>
+                          <span>選択</span>
                         </button>
                       </div>
                       <input
