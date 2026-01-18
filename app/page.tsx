@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useCallback, useEffect } from "react";
+import NextImage from "next/image";
 
 // --- 型定義 ---
 type AnalysisResult = {
@@ -170,7 +171,7 @@ const CameraCapture = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] bg-black">
+    <div className="fixed inset-0 z-50 bg-black">
       {/* ヘッダー */}
       <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent p-4 pt-safe">
         <div className="flex items-center justify-between">
@@ -213,8 +214,8 @@ const CameraCapture = ({
               {/* ガイド枠 - 図面は横向き、その他は縦向き */}
               <div className={`relative border-4 border-white rounded-xl shadow-2xl bg-transparent z-10 ${
                 targetType === "plan" 
-                  ? "w-[90%] max-w-lg aspect-[4/3]" 
-                  : "w-[85%] max-w-md aspect-[3/4]"
+                  ? "w-11/12 max-w-lg aspect-4-3" 
+                  : "w-5/6 max-w-md aspect-3-4"
               }`}>
                 {/* コーナーマーク */}
                 <div className="absolute -top-1 -left-1 w-8 h-8 border-t-4 border-l-4 border-amber-400 rounded-tl-lg"></div>
@@ -288,8 +289,8 @@ const FortuneGauge = ({ score, category }: { score: number; category: string }) 
       </div>
       <div className="h-2 bg-purple-900/50 rounded-full overflow-hidden">
         <div 
-          className={`h-full bg-gradient-to-r ${getGradient()} rounded-full transition-all duration-1000 ease-out relative overflow-hidden`}
-          style={{ width: `${score}%` }}
+          className={`h-full w-full bg-gradient-to-r ${getGradient()} rounded-full transition-transform duration-1000 ease-out relative overflow-hidden`}
+          style={{ transform: `scaleX(${Math.max(0, Math.min(1, score / 100))})`, transformOrigin: "left" }}
         >
           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer"></div>
         </div>
@@ -559,9 +560,10 @@ const RiskGauge = ({ score }: { score: number }) => {
           }}></div>
           
           <div 
-            className="h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden"
+            className="h-full w-full rounded-full transition-transform duration-1000 ease-out relative overflow-hidden"
             style={{ 
-              width: `${score}%`,
+              transform: `scaleX(${Math.max(0, Math.min(1, score / 100))})`,
+              transformOrigin: "left",
               background: `linear-gradient(90deg, ${coinColor.darker} 0%, ${coinColor.dark} 25%, ${coinColor.mid} 50%, ${coinColor.light} 75%, ${coinColor.mid} 100%)`,
               boxShadow: `
                 inset 0 1px 2px rgba(255,255,255,0.3),
@@ -1033,12 +1035,42 @@ export default function Home() {
     if (!resultRef.current) return;
     try {
       const html2canvas = (await import("html2canvas")).default;
-      const canvas = await html2canvas(resultRef.current, { backgroundColor: "#ffffff", scale: 2 } as Parameters<typeof html2canvas>[1]);
+      const exportBg = result?.is_secret_mode ? "#0f172a" : "#ffffff";
+      const canvas = await html2canvas(resultRef.current, { 
+        backgroundColor: exportBg, 
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        allowTaint: false,
+        onclone: (clonedDoc: Document) => {
+          // キャプチャ時にアニメーション/トランジション由来の「真っ白」を防ぐ
+          const style = clonedDoc.createElement("style");
+          style.textContent = `
+            *, *::before, *::after {
+              animation: none !important;
+              transition: none !important;
+            }
+          `;
+          clonedDoc.head.appendChild(style);
+
+          // 結果領域の背景と可視状態を強制（opacity/transformが残って白抜けするのを防ぐ）
+          const exportEl = clonedDoc.getElementById("result-export");
+          if (exportEl) {
+            (exportEl as HTMLElement).style.backgroundColor = exportBg;
+            (exportEl as HTMLElement).style.opacity = "1";
+            (exportEl as HTMLElement).style.transform = "none";
+            (exportEl as HTMLElement).style.filter = "none";
+          }
+        },
+      } as Parameters<typeof html2canvas>[1]);
       const link = document.createElement("a");
       link.download = `診断結果.png`;
       link.href = canvas.toDataURL("image/png");
       link.click();
-    } catch { alert("保存に失敗しました"); }
+    } catch (error) { 
+      console.error("画像保存エラー:", error);
+      alert("保存に失敗しました"); 
+    }
   };
 
   // LINE連携ハンドラー
@@ -1076,7 +1108,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100 font-sans pb-20 relative overflow-hidden">
+    <div className="min-h-dvh bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100 font-sans pb-20 relative overflow-hidden">
       {/* 背景装飾 */}
       <div className="fixed inset-0 -z-10">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-float"></div>
@@ -1100,7 +1132,7 @@ export default function Home() {
       {/* ================= TOP VIEW ================= */}
       {currentView === "top" && (
         <div className="max-w-3xl mx-auto p-6 md:p-10 animate-fade-in">
-          <div className="text-center mb-10 mt-4">
+          <div className="text-center mb-10 mt-8 md:mt-12">
             <h2 className="text-4xl md:text-7xl font-extrabold text-white mb-3 md:mb-4 leading-tight">
               賃貸初期費用<span className="text-yellow-400 font-extrabold">AI</span><span className="text-blue-400">診断</span>
             </h2>
@@ -1133,10 +1165,10 @@ export default function Home() {
                 <h3 className="text-sm md:text-base font-bold text-white">見積書</h3>
               </div>
               
-              <div className="bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-2xl p-4 md:p-6 relative overflow-hidden hover:border-blue-500/50 transition-all group flex-1 min-h-[280px] flex flex-col">
+              <div className="bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-2xl p-4 md:p-6 relative overflow-hidden hover:border-blue-500/50 transition-all group flex-1 min-h-72 flex flex-col">
                 {estimatePreview ? (
                   <div className="relative flex-1 flex items-center justify-center py-4">
-                    <img src={estimatePreview} className="w-full h-full max-h-[250px] object-contain rounded-lg" alt="見積書プレビュー" />
+                    <img src={estimatePreview} className="w-full h-full max-h-64 object-contain rounded-lg" alt="見積書プレビュー" />
                     <button
                       onClick={() => {
                         if (estimatePreview) URL.revokeObjectURL(estimatePreview);
@@ -1144,6 +1176,7 @@ export default function Home() {
                         setEstimatePreview(null);
                       }}
                       className="absolute top-2 right-2 bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center hover:bg-red-600 text-sm z-10"
+                      aria-label="見積書画像を削除"
                     >
                       ✕
                     </button>
@@ -1192,10 +1225,10 @@ export default function Home() {
                 <span className="text-slate-500 text-[9px] md:text-xs">精度UP</span>
               </div>
               
-              <div className="bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-2xl p-4 md:p-6 relative overflow-hidden hover:border-blue-500/50 transition-all group flex-1 min-h-[280px] flex flex-col">
+              <div className="bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-2xl p-4 md:p-6 relative overflow-hidden hover:border-blue-500/50 transition-all group flex-1 min-h-72 flex flex-col">
                 {planPreview ? (
                   <div className="relative flex-1 flex items-center justify-center py-4">
-                    <img src={planPreview} className="w-full h-full max-h-[250px] object-contain rounded-lg" alt="募集図面プレビュー" />
+                    <img src={planPreview} className="w-full h-full max-h-64 object-contain rounded-lg" alt="募集図面プレビュー" />
                     <button
                       onClick={() => {
                         if (planPreview) URL.revokeObjectURL(planPreview);
@@ -1203,6 +1236,7 @@ export default function Home() {
                         setPlanPreview(null);
                       }}
                       className="absolute top-2 right-2 bg-red-500 text-white w-7 h-7 rounded-full flex items-center justify-center hover:bg-red-600 text-sm z-10"
+                      aria-label="図面画像を削除"
                     >
                       ✕
                     </button>
@@ -1243,15 +1277,8 @@ export default function Home() {
               </div>
             </div>
           </div>
-          
-          {/* 精度アップの説明 */}
-          <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/30 rounded-xl p-3 mb-8">
-              <p className="text-emerald-300 text-[10px] text-center">
-              💡 図面追加で診断精度UP
-              </p>
-            </div>
 
-          <div className="text-center">
+          <div className="text-center mt-6">
             {!isLoading ? (
               <button
                 onClick={handleAnalyze}
@@ -1293,12 +1320,12 @@ export default function Home() {
                   isSecretModeLoading ? "bg-purple-900/50" : "bg-slate-700"
                 }`}>
                   <div 
-                    className={`h-full transition-all duration-300 relative ${
+                    className={`h-full w-full transition-transform duration-300 relative ${
                       isSecretModeLoading 
                         ? "bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500" 
                         : "bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500"
                     }`}
-                    style={{ width: `${loadingProgress}%` }}
+                    style={{ transform: `scaleX(${Math.max(0, Math.min(1, loadingProgress / 100))})`, transformOrigin: "left" }}
                   >
                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer"></div>
                   </div>
@@ -1360,22 +1387,24 @@ export default function Home() {
           {/* 裏コマンドモード: 占い風UI */}
           {result.is_secret_mode ? (
             <>
-              <div ref={resultRef}>
+              <div id="result-export" ref={resultRef} style={{ backgroundColor: "#ffffff" }} className="rounded-3xl overflow-hidden">
                 <FortuneResult result={result} />
               </div>
               
               {/* 共有・LINE連携ボタン */}
-              <div className="grid grid-cols-2 gap-2 md:gap-4 mb-8 mt-8">
-                <button onClick={handleDownloadImage} className="col-span-2 py-3 rounded-xl font-bold bg-slate-700 text-white text-sm hover:bg-slate-600 flex items-center justify-center gap-2 shadow-md">
-                  <span>💾</span> 画像を保存
-                </button>
-                <button 
-                  onClick={handleCopyLink} 
-                  disabled={isCreatingShare}
-                  className="col-span-2 bg-slate-700 text-slate-200 font-bold text-sm py-3 rounded-xl hover:bg-slate-600 border border-slate-600 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isCreatingShare ? "⏳ 準備中..." : isCopied ? "✨ コピーしました！" : "🔗 共有用リンクをコピー"}
-                </button>
+              <div className="mb-8 mt-8">
+                <div className="flex gap-2 md:gap-4 mb-4">
+                  <button onClick={handleDownloadImage} className="flex-1 py-3 rounded-xl font-bold bg-slate-700 text-white text-sm hover:bg-slate-600 flex items-center justify-center gap-2 shadow-md">
+                    <span>💾</span> 画像DL
+                  </button>
+                  <button 
+                    onClick={handleCopyLink} 
+                    disabled={isCreatingShare}
+                    className="flex-1 bg-slate-700 text-slate-200 font-bold text-sm py-3 rounded-xl hover:bg-slate-600 border border-slate-600 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isCreatingShare ? "⏳ 準備中..." : isCopied ? "✨ コピーしました！" : "🔗 共有用リンクコピー"}
+                  </button>
+                </div>
                 {/* LINE連携ボタン */}
                 <button 
                   onClick={handleLineLink} 
@@ -1412,7 +1441,7 @@ export default function Home() {
           ) : (
           /* 通常モード: 診断結果UI */
           <>
-          <div ref={resultRef} className="bg-white p-8 rounded-3xl border border-slate-200 shadow-2xl relative overflow-hidden mb-8 animate-scale-in text-slate-600">
+          <div id="result-export" ref={resultRef} className="bg-white p-8 rounded-3xl border border-slate-200 shadow-2xl relative overflow-hidden mb-8 animate-scale-in text-slate-600">
             <div className="border-b border-slate-100 pb-8 mb-8 animate-fade-in-up">
               <div className="text-center mb-3">
                 <p className="text-xs text-slate-400 font-bold tracking-wider uppercase mb-2">物件名</p>
@@ -1524,16 +1553,16 @@ export default function Home() {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-2 md:gap-4 mb-8">
-            <button onClick={handleDownloadImage} className="col-span-2 py-3 rounded-xl font-bold bg-slate-700 text-white text-sm hover:bg-slate-600 flex items-center justify-center gap-2 shadow-md">
-              <span>💾</span> 画像を保存
+          <div className="flex gap-2 md:gap-4 mb-8">
+            <button onClick={handleDownloadImage} className="flex-1 py-3 rounded-xl font-bold bg-slate-700 text-white text-sm hover:bg-slate-600 flex items-center justify-center gap-2 shadow-md">
+              <span>💾</span> 画像DL
             </button>
             <button 
               onClick={handleCopyLink} 
               disabled={isCreatingShare}
-              className="col-span-2 bg-slate-700 text-slate-200 font-bold text-sm py-3 rounded-xl hover:bg-slate-600 border border-slate-600 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 bg-slate-700 text-slate-200 font-bold text-sm py-3 rounded-xl hover:bg-slate-600 border border-slate-600 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isCreatingShare ? "⏳ 準備中..." : isCopied ? "✨ コピーしました！" : "🔗 共有用リンクをコピー"}
+              {isCreatingShare ? "⏳ 準備中..." : isCopied ? "✨ コピーしました！" : "🔗 共有用リンクコピー"}
             </button>
             {shareId && (
               <div className="col-span-2 bg-blue-500/20 border border-blue-500/30 rounded-xl p-3 text-xs text-blue-300">
@@ -1628,38 +1657,56 @@ export default function Home() {
 
           <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
              <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
-             <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="text-left flex-1">
-                  <h3 className="text-sm md:text-lg font-bold text-white mb-1">
-                    AI診断結果を<br className="md:hidden"/><span className="text-green-400">プロが無料精査</span>
-                  </h3>
-                  <p className="text-[9px] md:text-[10px] text-slate-500">
-                    最安値プランをご提案
-                  </p>
-                </div>
-                {/* LINE連携ボタン */}
-                <button 
-                  onClick={handleLineLink} 
-                  disabled={isCreatingLineLink}
-                  className="flex-shrink-0 bg-gradient-to-r from-[#06C755] to-[#05b34c] hover:from-[#05b34c] hover:to-[#04a042] text-white font-black py-5 px-10 rounded-2xl shadow-2xl shadow-green-500/30 transition-all hover:scale-105 hover:shadow-green-500/50 flex items-center gap-3 text-lg relative overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed"
-                  style={{
-                    boxShadow: '0 10px 30px rgba(6, 199, 85, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.3)'
-                  }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                  <div className="relative z-10 w-8 h-8 flex items-center justify-center">
-                    {isCreatingLineLink ? (
-                      <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-white"></div>
-                    ) : (
-                      <svg viewBox="0 0 24 24" fill="currentColor" className="w-7 h-7 relative z-10 drop-shadow-lg" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}>
-                        <path d="M12 2C6.48 2 2 5.56 2 10.1c0 2.45 1.3 4.63 3.4 6.1-.15.8-.5 2.15-.56 2.47-.05.24.1.47.34.47.1 0 .2-.03.27-.08.05-.03 2.6-1.73 3.63-2.45.62.17 1.28.26 1.95.26 5.52 0 10-3.56 10-8.1S17.52 2 12 2z"/>
-                      </svg>
-                    )}
-                  </div>
-                  <span className="relative z-10 tracking-wide">
-                    {isCreatingLineLink ? "準備中..." : "LINEで続きを確認"}
-                  </span>
-                </button>
+             <div className="relative z-10">
+               {/* LINE連携ボタン（CV） */}
+               <button 
+                 onClick={handleLineLink} 
+                 disabled={isCreatingLineLink}
+                 className="relative w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5"
+                 style={{
+                   boxShadow: '0 12px 36px rgba(6, 199, 85, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28)'
+                 }}
+               >
+                 {/* シマー（約4秒おき） */}
+                 <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-20 animate-shine"></div>
+
+                 <div className="relative flex items-center justify-center gap-4">
+                   {/* 左側：LINE公式ロゴ */}
+                   {isCreatingLineLink ? (
+                     <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-white/90 flex-shrink-0" />
+                   ) : (
+                     <NextImage
+                       src="/line-logo.png"
+                       alt="LINEロゴ"
+                       width={44}
+                       height={44}
+                       className="flex-shrink-0 drop-shadow-md"
+                     />
+                   )}
+
+                   {/* 右側：テキスト（2行） */}
+                   {isCreatingLineLink ? (
+                     <div className="text-xl md:text-2xl font-extrabold text-white drop-shadow-md">
+                       準備中...
+                     </div>
+                   ) : (
+                     (result.discount_amount ?? 0) > 0 ? (
+                       <div className="flex flex-col text-left leading-tight">
+                         <span className="text-lg md:text-xl font-bold text-white drop-shadow-md">
+                           <span className="text-[#ff0000] font-extrabold text-xl md:text-2xl text-outline-white-strong mr-1">割引済み</span>
+                           <span className="text-white">の見積もりを</span>
+                         </span>
+                         <span className="text-xl md:text-2xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
+                       </div>
+                     ) : (
+                       <div className="flex flex-col text-left leading-tight">
+                         <span className="text-lg md:text-xl font-bold text-white drop-shadow-md">詳細の見積りを</span>
+                         <span className="text-xl md:text-2xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
+                       </div>
+                     )
+                   )}
+                 </div>
+               </button>
              </div>
              <div className="relative z-10 mt-6 pt-6 border-t border-slate-700">
                 <div className="flex flex-wrap gap-2 md:gap-4 text-[10px] md:text-sm justify-center md:justify-start">

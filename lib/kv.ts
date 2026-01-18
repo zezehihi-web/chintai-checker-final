@@ -4,8 +4,79 @@
  * 案件（case）、caseToken、LINEユーザーのデータ管理
  */
 
-import { kv } from '@vercel/kv';
 import crypto from 'crypto';
+
+type KvClient = {
+  get: <T = unknown>(key: string) => Promise<T | null>;
+  set: (key: string, value: unknown) => Promise<unknown>;
+  del: (key: string) => Promise<unknown>;
+  setex: (key: string, ttlSeconds: number, value: unknown) => Promise<unknown>;
+  ttl: (key: string) => Promise<number>;
+};
+
+type MemoryEntry = { value: unknown; expiresAtMs: number | null };
+
+function createMemoryKv(): KvClient {
+  const store = new Map<string, MemoryEntry>();
+
+  const isExpired = (entry: MemoryEntry) =>
+    entry.expiresAtMs !== null && entry.expiresAtMs <= Date.now();
+
+  const getEntry = (key: string): MemoryEntry | null => {
+    const entry = store.get(key);
+    if (!entry) return null;
+    if (isExpired(entry)) {
+      store.delete(key);
+      return null;
+    }
+    return entry;
+  };
+
+  return {
+    async get<T = unknown>(key: string) {
+      const entry = getEntry(key);
+      return (entry ? (entry.value as T) : null);
+    },
+    async set(key: string, value: unknown) {
+      store.set(key, { value, expiresAtMs: null });
+      return "OK";
+    },
+    async del(key: string) {
+      store.delete(key);
+      return 1;
+    },
+    async setex(key: string, ttlSeconds: number, value: unknown) {
+      store.set(key, { value, expiresAtMs: Date.now() + ttlSeconds * 1000 });
+      return "OK";
+    },
+    async ttl(key: string) {
+      const entry = getEntry(key);
+      if (!entry) return -2; // Redis互換: key not found
+      if (entry.expiresAtMs === null) return -1; // no expire
+      return Math.max(0, Math.floor((entry.expiresAtMs - Date.now()) / 1000));
+    },
+  };
+}
+
+let kvClientSingleton: KvClient | null = null;
+
+async function getKv(): Promise<KvClient> {
+  if (kvClientSingleton) return kvClientSingleton;
+
+  try {
+    // NOTE: @vercel/kv が未インストールでもUIを起動できるようにする（ローカル開発用フォールバック）
+    // bundler解決を避けるため eval(require) を使う
+    const req = (0, eval)("require") as NodeRequire; // eslint-disable-line no-eval
+    const mod = req("@vercel/kv") as { kv?: KvClient };
+    if (!mod?.kv) throw new Error("`@vercel/kv` loaded but `kv` export missing");
+    kvClientSingleton = mod.kv;
+    return kvClientSingleton;
+  } catch (e) {
+    console.warn("[kv] @vercel/kv が見つからないためメモリKVで代替します（再起動で消えます）", e);
+    kvClientSingleton = createMemoryKv();
+    return kvClientSingleton;
+  }
+}
 
 // 型定義
 export interface CaseData {
@@ -41,6 +112,7 @@ export interface ConversationState {
  * @returns case_id
  */
 export async function createCase(result: any): Promise<string> {
+  const kv = await getKv();
   const caseId = crypto.randomUUID();
   const now = new Date();
   const expiresAt = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000); // 30日後
@@ -73,6 +145,7 @@ export async function createCase(result: any): Promise<string> {
  * @returns caseToken（32文字hex）
  */
 export async function createCaseToken(caseId: string): Promise<string> {
+  const kv = await getKv();
   // 128bit（16バイト）のランダムトークン → 32文字のhex
   const token = crypto.randomBytes(16).toString('hex');
 
@@ -95,6 +168,7 @@ export async function createCaseToken(caseId: string): Promise<string> {
  * @returns case_id（トークンが有効な場合）、null（無効な場合）
  */
 export async function consumeCaseToken(token: string): Promise<string | null> {
+  const kv = await getKv();
   const key = `caseToken:${token}`;
   const data = await kv.get<{ case_id: string; created_at: number }>(key);
 
@@ -114,6 +188,7 @@ export async function consumeCaseToken(token: string): Promise<string | null> {
  * @param lineUserId LINE User ID
  */
 export async function linkCaseToUser(caseId: string, lineUserId: string): Promise<void> {
+  const kv = await getKv();
   // 案件データを取得
   const caseData = await kv.get<CaseData>(`case:${caseId}`);
   if (!caseData) {
@@ -172,6 +247,7 @@ export async function linkCaseToUser(caseId: string, lineUserId: string): Promis
  * @returns 案件一覧
  */
 export async function getUserCases(lineUserId: string, limit: number = 5): Promise<CaseData[]> {
+  const kv = await getKv();
   const userCasesKey = `userCases:${lineUserId}`;
   const userCasesData = await kv.get<{ case_ids: string[] }>(userCasesKey);
 
@@ -219,6 +295,7 @@ export async function getUserCases(lineUserId: string, limit: number = 5): Promi
  * @param caseId 案件ID
  */
 export async function setActiveCase(lineUserId: string, caseId: string): Promise<void> {
+  const kv = await getKv();
   // 案件が存在し、かつユーザーに紐づいているか確認
   const caseData = await kv.get<CaseData>(`case:${caseId}`);
   if (!caseData) {
@@ -243,6 +320,7 @@ export async function setActiveCase(lineUserId: string, caseId: string): Promise
  * @returns 案件データ（存在しない場合はnull）
  */
 export async function getActiveCase(lineUserId: string): Promise<CaseData | null> {
+  const kv = await getKv();
   const activeCaseData = await kv.get<ActiveCase>(`activeCase:${lineUserId}`);
 
   if (!activeCaseData) {
@@ -274,6 +352,7 @@ export async function getActiveCase(lineUserId: string): Promise<CaseData | null
  * @returns 案件データ（存在しない場合はnull）
  */
 export async function getCase(caseId: string): Promise<CaseData | null> {
+  const kv = await getKv();
   const caseData = await kv.get<CaseData>(`case:${caseId}`);
 
   if (!caseData) {
@@ -309,6 +388,7 @@ export async function setConversationState(
   step: ConversationState['step'],
   caseId: string
 ): Promise<void> {
+  const kv = await getKv();
   const state: ConversationState = {
     line_user_id: lineUserId,
     step,
@@ -325,6 +405,7 @@ export async function setConversationState(
  * @returns 会話状態（存在しない場合はnull）
  */
 export async function getConversationState(lineUserId: string): Promise<ConversationState | null> {
+  const kv = await getKv();
   return await kv.get<ConversationState>(`conversation:${lineUserId}`);
 }
 
@@ -333,5 +414,6 @@ export async function getConversationState(lineUserId: string): Promise<Conversa
  * @param lineUserId LINE User ID
  */
 export async function clearConversationState(lineUserId: string): Promise<void> {
+  const kv = await getKv();
   await kv.del(`conversation:${lineUserId}`);
 }

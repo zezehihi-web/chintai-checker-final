@@ -7,8 +7,14 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
-    // 動的インポートで @vercel/kv をロード
-    const { kv } = await import('@vercel/kv');
+    // NOTE: @vercel/kv が未インストールでもビルド/起動できるようにする
+    // eslint-disable-next-line no-eval
+    const req = (0, eval)('require') as NodeRequire;
+    const mod = req('@vercel/kv') as { kv?: any };
+    const kv = mod?.kv;
+    if (!kv) {
+      throw new Error('@vercel/kv が見つかりません。`npm install` を実行してください。');
+    }
 
     // テスト用のキーで読み書き
     const testKey = 'test:connection';

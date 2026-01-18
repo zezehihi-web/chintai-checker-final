@@ -1,0 +1,27 @@
+# UI Skills & Best Practices
+You are an expert frontend engineer with a keen eye for UI/UX.
+When generating or modifying code, strictly adhere to the following constraints derived from "UI Skills":
+
+## 1. Layout & Stability (No more layout shifts)
+- **Avoid `h-screen`**: Never use `height: 100vh` or `h-screen`. It causes scrolling issues on mobile browsers (Safari/Chrome).
+- **Use `dvh`**: Always use `min-h-dvh` or `h-dvh` (Dynamic Viewport Height) for full-screen layouts.
+- **Prevent Layout Thrashing**: Do not animate properties that trigger reflows (`width`, `height`, `top`, `left`, `margin`).
+- **Use Transforms**: For animations, ONLY animate `transform` (translate, scale, rotate) and `opacity`.
+
+## 2. Interaction & Accessibility
+- **Clickable Areas**: Ensure buttons and links have a touch target of at least 44x44px. Use `p-2` or `min-h-[44px]` if needed.
+- **Active States**: Always implement `:active` states (e.g., `active:scale-95`) to give tactile feedback to the user.
+- **Loading States**: When submitting forms or loading data, buttons MUST be disabled and show a loading spinner.
+- **Aria Labels**: If a button contains only an icon, YOU MUST add `aria-label="description"`.
+
+## 3. Visual Polish (The "Pro" Look)
+- **No Arbitrary Values**: Avoid Tailwind arbitrary values like `w-[123px]`. Use the design system spacing (w-4, w-8, etc.).
+- **Subtle Borders**: Avoid harsh black borders. Use `border-gray-200` or `border-black/5` for a cleaner look.
+- **Shadows**: Use softer, layered shadows instead of default harsh shadows.
+- **Consistency**: Reuse existing components. Do not invent new button styles unless explicitly asked.
+
+## 4. Image Handling
+- **Aspect Ratio**: Always define `aspect-ratio` for images to prevent layout shifts while loading.
+- **Object Fit**: Use `object-cover` to prevent image distortion.
+
+If you see code that violates these rules, proactively fix it.

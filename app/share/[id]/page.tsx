@@ -78,9 +78,10 @@ const RiskGauge = ({ score }: { score: number }) => {
           
           {/* プログレスバー（ゴールド/金色） */}
           <div 
-            className="h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden"
+            className="h-full w-full rounded-full transition-transform duration-1000 ease-out relative overflow-hidden"
             style={{ 
-              width: `${score}%`,
+              transform: `scaleX(${Math.max(0, Math.min(1, score / 100))})`,
+              transformOrigin: "left",
               background: `linear-gradient(90deg, ${coinColor.darker} 0%, ${coinColor.dark} 25%, ${coinColor.mid} 50%, ${coinColor.light} 75%, ${coinColor.mid} 100%)`,
               boxShadow: `
                 inset 0 1px 2px rgba(255,255,255,0.3),
@@ -205,7 +206,7 @@ export default function SharePage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-dvh bg-slate-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-slate-600">読み込み中...</p>
@@ -216,7 +217,7 @@ export default function SharePage() {
 
   if (error || !result) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
+      <div className="min-h-dvh bg-slate-50 flex items-center justify-center p-6">
         <div className="bg-white rounded-2xl p-8 shadow-xl max-w-md text-center">
           <div className="text-4xl mb-4">😢</div>
           <h2 className="text-xl font-bold text-slate-900 mb-2">エラー</h2>
@@ -233,7 +234,7 @@ export default function SharePage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-600 font-sans pb-20">
+    <div className="min-h-dvh bg-slate-50 text-slate-600 font-sans pb-20">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-3xl mx-auto px-6 py-4 flex justify-center items-center">
           <h1 className="text-lg md:text-xl font-bold text-slate-800 tracking-tight">
