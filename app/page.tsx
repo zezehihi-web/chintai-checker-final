@@ -1145,7 +1145,7 @@ export default function Home() {
                       <img 
                         src="/estimate-icon.png" 
                         alt="見積書" 
-                        className="w-12 h-12 md:w-16 md:h-16 object-contain drop-shadow-md"
+                        className="w-16 h-16 md:w-20 md:h-20 object-contain drop-shadow-md"
                       />
                     </div>
                     <p className="text-slate-400 text-xs md:text-sm mb-3 md:mb-4">見積書の画像</p>
