@@ -67,19 +67,34 @@ export async function POST(req: Request) {
       
       // 友だち追加状態を確認（プロフィール取得で確認）
       // 友だち追加されていない場合、getProfileはエラーを返す
+      // ただし、新規友達追加直後は一時的にエラーになる可能性があるため、エラーメッセージを確認
+      let isFriend = false;
       try {
         await client.getProfile(lineUserId);
+        isFriend = true;
       } catch (profileError: any) {
-        // 友だち追加されていない場合はエラーを返す
-        console.warn('User is not a friend:', profileError);
-        // 連携自体は成功しているので、案件IDは返すが、メッセージ送信はスキップ
-        return NextResponse.json({
-          success: true,
-          caseId,
-          requires_friend_add: true,
-          friend_add_url: process.env.NEXT_PUBLIC_LINE_URL || 'https://lin.ee/Hnl9hkO',
-          message: '友だち追加が必要です。友だち追加後、もう一度お試しください。'
-        });
+        const errorMessage = profileError.message || '';
+        const errorStatus = profileError.status || profileError.statusCode || 0;
+        // 友だち追加が必要なエラーのみを検出（404や401などの特定のエラーコード）
+        // 500などのサーバーエラーは除外
+        if (errorStatus === 404 || errorStatus === 400 || 
+            errorMessage.includes('友だち追加') || 
+            errorMessage.includes('not a friend') ||
+            errorMessage.includes('LINEの友達ではない')) {
+          console.warn('User is not a friend:', profileError);
+          // 連携自体は成功しているので、案件IDは返すが、メッセージ送信はスキップ
+          return NextResponse.json({
+            success: true,
+            caseId,
+            requires_friend_add: true,
+            friend_add_url: process.env.NEXT_PUBLIC_LINE_URL || 'https://lin.ee/Hnl9hkO',
+            message: '友だち追加が必要です。友だち追加後、もう一度お試しください。'
+          });
+        } else {
+          // その他のエラー（ネットワークエラーなど）の場合は、友だち追加済みとみなして続行
+          console.warn('getProfile error (not friend-related), continuing:', profileError);
+          isFriend = true; // 続行を試みる
+        }
       }
 
       const caseData = await getCase(caseId);
