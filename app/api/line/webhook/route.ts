@@ -276,12 +276,14 @@ export async function POST(req: Request) {
         const conversationState = await getConversationState(userId);
         console.log(`[Conversation state] User: ${userId}, State:`, conversationState);
 
-        // property_confirmステップの場合
-        if (conversationState && conversationState.step === 'property_confirm') {
-          console.log(`[property_confirm] Processing message: "${messageText}"`);
-          const caseId = conversationState.case_id;
+        // アクティブ案件を取得（ボタン処理で使用）
+        const activeCase = await getActiveCase(userId);
+        const caseId = conversationState?.case_id || activeCase?.case_id;
 
-          if (messageText === 'はい') {
+        // 「はい」ボタン - 物件確認フローから申し込み希望へ
+        if (messageText === 'はい' && caseId) {
+          // property_confirmステップの場合のみ（案件詳細表示の「はい」と区別）
+          if (conversationState && conversationState.step === 'property_confirm') {
             console.log('[property_confirm] User selected "はい" - moving to application_intent');
             // 「はい」が選択された場合 → 申し込み希望を聞く
 
@@ -370,93 +372,76 @@ export async function POST(req: Request) {
             // メッセージ送信後に状態を変更
             await setConversationState(userId, 'application_intent', caseId);
             continue;
-          } else if (messageText === 'いいえ') {
-            console.log('[property_confirm] User selected "いいえ" - requesting images');
-            // 「いいえ」が選択された場合 → 画像送信を促す
-
-            await client.replyMessage(event.replyToken, {
-              type: 'text',
-              text: '承知いたしました。\n\nお手数ですが、ご希望の物件の募集図面と初期費用の見積もりをこちらのLINEにお送りいただけますでしょうか？\n\n担当者が確認の上、診断結果をお送りいたします。',
-            });
-
-            // メッセージ送信後に状態を変更
-            await setConversationState(userId, 'waiting_images', caseId);
-            continue;
-          } else if (messageText === '相談したい') {
-            console.log('[property_confirm] User selected "相談したい"');
-            // 「相談したい」が選択された場合
-
-            await client.replyMessage(event.replyToken, {
-              type: 'text',
-              text: '承知いたしました。\n\nどのようなことでもお気軽にご相談ください。まずは、ざっくりとご相談内容を教えていただけますか？\n\n担当者より改めてご連絡させていただきます。',
-            });
-
-            // メッセージ送信後に状態を変更
-            await setConversationState(userId, 'consultation', caseId);
-            continue;
           }
+          // 「はい」がapplication_intentステップの後に押された場合は、詳細表示へ（後続の処理へ）
         }
 
-        // application_intentステップの場合
-        if (conversationState && conversationState.step === 'application_intent') {
-          console.log(`[application_intent] Processing message: "${messageText}"`);
-          const caseId = conversationState.case_id;
+        // 「いいえ」ボタン - 物件が違う場合、画像送信を促す
+        if (messageText === 'いいえ' && caseId) {
+          console.log('[Button] User selected "いいえ" - requesting images');
 
-          if (messageText === '申し込みする') {
-            console.log('[application_intent] User selected "申し込みする"');
-            // 「申し込みする」が選択された場合 → 以後手動対応
+          await client.replyMessage(event.replyToken, {
+            type: 'text',
+            text: '承知いたしました。\n\nお手数ですが、ご希望の物件の募集図面と初期費用の見積もりをこちらのLINEにお送りいただけますでしょうか？\n\n担当者が確認の上、診断結果をお送りいたします。',
+          });
 
-            await client.replyMessage(event.replyToken, {
-              type: 'text',
-              text: 'ありがとうございます。\n\n最新の空室状況と、正確な初期費用のお見積もりを確認させていただきます。少々お待ちくださいませ。\n\n担当者より詳細をご連絡いたします。',
-            });
-
-            // メッセージ送信後に状態を変更
-            await setConversationState(userId, 'completed', caseId);
-
-            // ここで手動対応の通知
-            console.log(`[Manual action required] User ${userId} wants to apply for case ${caseId}`);
-            continue;
-          } else if (messageText === '他の物件を探す' || messageText === '申し込みしない') {
-            console.log('[application_intent] User selected "他の物件を探す"');
-            // 「他の物件を探す」が選択された場合 → 物件探すシステムへのリンク
-
-            // スーモのURL（テスト用、後で変更可能）
-            const propertySearchUrl = 'https://suumo.jp/chintai/';
-
-            await client.replyMessage(event.replyToken, {
-              type: 'template',
-              altText: '他の物件を探す',
-              template: {
-                type: 'buttons',
-                text: '承知いたしました。\n\n他の物件をお探しでしたら、AIで最適な物件を探せるシステムをご用意しております。ぜひこちらもご活用ください。',
-                actions: [
-                  {
-                    type: 'uri',
-                    label: '物件を探す',
-                    uri: propertySearchUrl,
-                  },
-                ],
-              },
-            });
-
-            // メッセージ送信後に状態を変更
-            await setConversationState(userId, 'completed', caseId);
-            continue;
-          } else if (messageText === '相談したい') {
-            console.log('[application_intent] User selected "相談したい"');
-            // 「相談したい」が選択された場合
-
-            await client.replyMessage(event.replyToken, {
-              type: 'text',
-              text: '承知いたしました。\n\nどのようなことでもお気軽にご相談ください。まずは、ざっくりとご相談内容を教えていただけますか？\n\n担当者より改めてご連絡させていただきます。',
-            });
-
-            // メッセージ送信後に状態を変更
-            await setConversationState(userId, 'consultation', caseId);
-            continue;
-          }
+          await setConversationState(userId, 'waiting_images', caseId);
+          continue;
         }
+
+        // 「申し込みする」ボタン - お申し込み希望
+        if (messageText === '申し込みする' && caseId) {
+          console.log('[Button] User selected "申し込みする"');
+
+          await client.replyMessage(event.replyToken, {
+            type: 'text',
+            text: 'ありがとうございます。\n\n最新の空室状況と、正確な初期費用のお見積もりを確認させていただきます。少々お待ちくださいませ。\n\n担当者より詳細をご連絡いたします。',
+          });
+
+          await setConversationState(userId, 'completed', caseId);
+          console.log(`[Manual action required] User ${userId} wants to apply for case ${caseId}`);
+          continue;
+        }
+
+        // 「他の物件を探す」ボタン - 物件探しシステムへ誘導
+        if ((messageText === '他の物件を探す' || messageText === '申し込みしない') && caseId) {
+          console.log('[Button] User selected "他の物件を探す"');
+
+          const propertySearchUrl = 'https://suumo.jp/chintai/';
+
+          await client.replyMessage(event.replyToken, {
+            type: 'template',
+            altText: '他の物件を探す',
+            template: {
+              type: 'buttons',
+              text: '承知いたしました。\n\n他の物件をお探しでしたら、AIで最適な物件を探せるシステムをご用意しております。ぜひこちらもご活用ください。',
+              actions: [
+                {
+                  type: 'uri',
+                  label: '物件を探す',
+                  uri: propertySearchUrl,
+                },
+              ],
+            },
+          });
+
+          await setConversationState(userId, 'completed', caseId);
+          continue;
+        }
+
+        // 「相談したい」ボタン - 相談内容を聞く
+        if (messageText === '相談したい' && caseId) {
+          console.log('[Button] User selected "相談したい"');
+
+          await client.replyMessage(event.replyToken, {
+            type: 'text',
+            text: '承知いたしました。\n\nどのようなことでもお気軽にご相談ください。まずは、ざっくりとご相談内容を教えていただけますか？\n\n担当者より改めてご連絡させていただきます。',
+          });
+
+          await setConversationState(userId, 'consultation', caseId);
+          continue;
+        }
+
 
         // 「履歴」コマンド
         if (messageText === '履歴' || messageText === 'りれき' || messageText === 'history') {
@@ -548,17 +533,11 @@ export async function POST(req: Request) {
           continue;
         }
 
-        // 会話フロー中だが、期待されるメッセージではない場合
-        // （誤タップや再タップを許容するため、制限は緩くする）
-        if (conversationState && conversationState.step !== 'completed' && conversationState.step !== 'waiting_images') {
-          console.log(`[Unexpected message] User ${userId} in state ${conversationState.step} sent: "${messageText}"`);
-          // システムコマンドや通常メッセージとして処理を続行（制限しない）
-        }
-
-        // その他のメッセージ → ヘルプ
+        // その他のメッセージ → 簡潔な案内（ヘルプは削除）
+        console.log(`[Other message] User ${userId} sent: "${messageText}"`);
         await client.replyMessage(event.replyToken, {
           type: 'text',
-          text: '【使い方】\n\n📋 「履歴」→ 案件一覧を表示\n🔢 番号（1-5）→ 案件を選択\n✅ 「はい」→ 選択した案件の詳細を表示\n\n診断ページで「LINEで続き」ボタンを押すと新しい案件を連携できます。',
+          text: 'メッセージを受け取りました。\n\n「履歴」と送信すると診断結果の一覧を確認できます。\n\nご不明な点がございましたら、お気軽にお問い合わせください。',
         });
       }
 
