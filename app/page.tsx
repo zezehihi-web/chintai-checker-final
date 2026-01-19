@@ -10,7 +10,7 @@ type AnalysisResult = {
     name: string;
     price_original: number;
     price_fair: number;
-    status: "fair" | "negotiable" | "cut" | "requires_confirmation";
+    status: "fair" | "negotiable" | "cut" | "warning" | "requires_confirmation";
     reason: string;
     is_insurance?: boolean;
     evidence?: {
@@ -24,6 +24,8 @@ type AnalysisResult = {
   total_original: number;
   total_fair: number;
   discount_amount: number;
+  warning_amount?: number;
+  has_flyer?: boolean;
   pro_review: { content: string; };
   risk_score: number;
   has_unconfirmed_items?: boolean;
@@ -656,6 +658,9 @@ export default function Home() {
   const planInputRef = useRef<HTMLInputElement>(null);
   const conditionInputRef = useRef<HTMLInputElement>(null);
 
+  // 図面追加時の自動再診断フラグ
+  const shouldAutoReanalyzeRef = useRef(false);
+
   const handleFileChange = (file: File, target: UploadTarget) => {
       if (!file.type.startsWith('image/')) {
         setErrorMessage("画像ファイルを選択してください");
@@ -665,9 +670,9 @@ export default function Home() {
         setErrorMessage("画像サイズが大きすぎます（10MB以下にしてください）");
         return;
       }
-      
+
     const preview = URL.createObjectURL(file);
-    
+
     switch (target) {
       case "estimate":
         if (estimatePreview) URL.revokeObjectURL(estimatePreview);
@@ -678,6 +683,10 @@ export default function Home() {
         if (planPreview) URL.revokeObjectURL(planPreview);
         setPlanFile(file);
         setPlanPreview(preview);
+        // 既に診断結果があり、図面がなかった場合は自動再診断フラグを立てる
+        if (result && result.has_flyer === false && estimateFile) {
+          shouldAutoReanalyzeRef.current = true;
+        }
         break;
       case "condition":
         if (conditionPreview) URL.revokeObjectURL(conditionPreview);
@@ -703,6 +712,17 @@ export default function Home() {
   const handleCameraCapture = (file: File) => {
     handleFileChange(file, cameraTarget);
   };
+
+  // 図面追加時の自動再診断
+  useEffect(() => {
+    if (shouldAutoReanalyzeRef.current && planFile && estimateFile && !isLoading) {
+      shouldAutoReanalyzeRef.current = false;
+      // 少し遅延を入れてから再診断を実行
+      setTimeout(() => {
+        handleAnalyze();
+      }, 500);
+    }
+  }, [planFile]);
 
   // 裏コマンドモード判定用の状態
   const [isSecretModeLoading, setIsSecretModeLoading] = useState(false);
@@ -1473,6 +1493,11 @@ export default function Home() {
                 <span>→</span>
                 <span className="font-bold">適正: ¥{formatYen(result.total_fair)}</span>
               </div>
+              {result.warning_amount && result.warning_amount > 0 && (
+                <p className="text-blue-100 text-xs mt-3 opacity-90">
+                  ※ 別途、要確認項目あり（¥{formatYen(result.warning_amount)}）
+                </p>
+              )}
             </div>
 
             {result.has_unconfirmed_items && (
@@ -1489,58 +1514,108 @@ export default function Home() {
               </div>
             )}
 
-            <div className="space-y-3 mb-4">
-              {result.items.filter(i => i.status !== 'fair').map((item, index) => (
-                <div 
-                  key={index} 
-                  className={`border rounded-xl p-4 animate-fade-in-up ${
-                    item.requires_confirmation 
-                      ? 'bg-amber-50 border-amber-200' 
-                      : 'bg-red-50 border-red-100'
-                  }`} 
-                  style={{ animationDelay: `${0.2 + index * 0.05}s` }}
-                >
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-bold text-slate-800">{item.name}</span>
-                    <div className="flex items-center gap-1">
-                      {item.requires_confirmation && (
+            {/* 🔴 削減可能な項目 (cut/negotiable) */}
+            {result.items.filter(i => i.status === 'cut' || i.status === 'negotiable').length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl">🔴</span>
+                  <h3 className="text-sm font-bold text-red-600">削減可能な項目</h3>
+                </div>
+                <div className="space-y-3">
+                  {result.items.filter(i => i.status === 'cut' || i.status === 'negotiable').map((item, index) => (
+                    <div
+                      key={index}
+                      className="border rounded-xl p-4 animate-fade-in-up bg-red-50 border-red-100"
+                      style={{ animationDelay: `${0.2 + index * 0.05}s` }}
+                    >
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-bold text-slate-800">{item.name}</span>
+                        <span className={`text-[10px] font-bold text-white px-2 py-0.5 rounded ${
+                          item.status === 'cut' ? 'bg-red-500' : 'bg-orange-500'
+                        }`}>
+                          {item.status === 'cut' ? '削除推奨' : '交渉可'}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <p className="text-xs text-slate-500">{item.reason}</p>
+                        <div className="text-right whitespace-nowrap ml-2">
+                          <span className="text-xs text-slate-400 line-through block">¥{formatYen(item.price_original)}</span>
+                          <span className="text-red-600 font-bold">¥{formatYen(item.price_fair)}</span>
+                        </div>
+                      </div>
+                      {item.evidence && (
+                        <div className="mt-2 pt-2 border-t border-slate-200">
+                          <p className="text-[10px] text-slate-400 font-bold mb-1">📋 根拠</p>
+                          <p className="text-[10px] text-slate-500">{item.evidence.source_description}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 🟡 要確認項目 (warning) */}
+            {result.items.filter(i => i.status === 'warning').length > 0 && (
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl">🟡</span>
+                  <h3 className="text-sm font-bold text-amber-600">要確認項目</h3>
+                </div>
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-3">
+                  <p className="text-xs text-amber-700 mb-2">
+                    <span className="font-bold">⚠️ これらの項目は削減可能額に含まれていません</span>
+                  </p>
+                  <p className="text-xs text-amber-600">
+                    募集図面との照合やプロによる確認が必要です。詳細は不動産会社または弊社にご相談ください。
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  {result.items.filter(i => i.status === 'warning').map((item, index) => (
+                    <div
+                      key={index}
+                      className="border rounded-xl p-4 animate-fade-in-up bg-amber-50 border-amber-200"
+                      style={{ animationDelay: `${0.2 + index * 0.05}s` }}
+                    >
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="font-bold text-slate-800">{item.name}</span>
                         <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded">
                           要確認
                         </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <p className="text-xs text-amber-700">{item.reason}</p>
+                        <div className="text-right whitespace-nowrap ml-2">
+                          <span className="text-amber-600 font-bold">¥{formatYen(item.price_original)}</span>
+                        </div>
+                      </div>
+                      {item.evidence && (
+                        <div className="mt-2 pt-2 border-t border-amber-200">
+                          <p className="text-[10px] text-amber-500 font-bold mb-1">📋 根拠</p>
+                          <p className="text-[10px] text-amber-600">{item.evidence.source_description}</p>
+                        </div>
                       )}
-                      <span className={`text-[10px] font-bold text-white px-2 py-0.5 rounded ${
-                        item.status === 'cut' ? 'bg-red-500' : 'bg-orange-500'
-                      }`}>
-                        {item.status === 'cut' ? '削除推奨' : '交渉可'}
-                      </span>
                     </div>
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <p className="text-xs text-slate-500">{item.reason}</p>
-                    <div className="text-right whitespace-nowrap ml-2">
-                      <span className="text-xs text-slate-400 line-through block">¥{formatYen(item.price_original)}</span>
-                      <span className="text-red-600 font-bold">¥{formatYen(item.price_fair)}</span>
-                    </div>
-                  </div>
-                  {item.evidence && (
-                    <div className="mt-2 pt-2 border-t border-slate-200">
-                      <p className="text-[10px] text-slate-400 font-bold mb-1">📋 根拠</p>
-                      <p className="text-[10px] text-slate-500">{item.evidence.source_description}</p>
-                    </div>
-                  )}
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            )}
+
+            {/* 🟢 適正な項目 (fair) */}
             {result.items.filter(i => i.status === 'fair').length > 0 && (
-              <div className="mt-6 pt-4 border-t border-slate-100">
-                <p className="text-xs font-bold text-emerald-600 mb-2">✅ 適正な項目</p>
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-xl">🟢</span>
+                  <h3 className="text-sm font-bold text-emerald-600">適正な項目</h3>
+                </div>
                 <div className="text-xs text-slate-500 space-y-2">
                   {result.items.filter(i => i.status === 'fair').map((item, idx) => (
-                    <div key={idx} className="border-b border-slate-100 pb-2">
+                    <div key={idx} className="border border-emerald-100 bg-emerald-50/30 rounded-lg p-3">
                       <div className="flex justify-between">
-                        <span className="font-medium">{item.name}</span>
-                        <span>¥{formatYen(item.price_fair)}</span>
+                        <span className="font-medium text-slate-700">{item.name}</span>
+                        <span className="text-emerald-600 font-bold">¥{formatYen(item.price_fair)}</span>
                       </div>
+                      <p className="text-[10px] text-slate-500 mt-1">{item.reason}</p>
                       {item.evidence && (
                         <p className="text-[10px] text-slate-400 mt-1">
                           根拠: {item.evidence.source_description}
@@ -1552,6 +1627,30 @@ export default function Home() {
               </div>
             )}
           </div>
+
+          {/* 図面追加ボタン（図面未アップロード時のみ表示） */}
+          {result.has_flyer === false && (
+            <div className="mb-6">
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-xl p-4 mb-3">
+                <p className="text-sm font-bold text-blue-700 mb-1">📄 より正確な診断が可能です</p>
+                <p className="text-xs text-blue-600">
+                  募集図面を追加すると、要確認項目の判定精度が大幅に向上します。
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  // 図面アップロード用のinputをクリック
+                  if (planInputRef.current) {
+                    planInputRef.current.click();
+                  }
+                }}
+                className="w-full bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-4 px-6 rounded-xl flex items-center justify-center gap-3 shadow-lg transition-all hover:scale-[1.02]"
+              >
+                <span className="text-2xl">📄</span>
+                <span>募集図面を追加して再診断</span>
+              </button>
+            </div>
+          )}
 
           <div className="flex gap-2 md:gap-4 mb-8">
             <button onClick={handleDownloadImage} className="flex-1 py-3 rounded-xl font-bold bg-slate-700 text-white text-sm hover:bg-slate-600 flex items-center justify-center gap-2 shadow-md">

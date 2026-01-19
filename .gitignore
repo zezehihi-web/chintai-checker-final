@@ -43,6 +43,7 @@ next-env.d.ts
 # project specific
 *.zip
 debug.log
+server.log
 chintai-final-for-notebooklm.zip
 
 # sensitive documentation (contains API keys)
