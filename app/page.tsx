@@ -1160,9 +1160,9 @@ export default function Home() {
                   />
               </div>
             </div>
-            <p className="text-slate-400 text-xs md:text-sm">
-              AIが図面と見積もりを照合し、<br className="md:hidden"/>交渉可能な項目を洗い出します。
-            </p>
+            <h2 className="mx-auto w-full text-yellow-300 font-extrabold tracking-tight text-xl md:text-2xl leading-snug drop-shadow-sm">
+              AIが図面と見積もりを照合し、<br className="md:hidden" />交渉可能な項目を洗い出します。
+            </h2>
           </div>
 
           {/* 撮影のコツ */}
