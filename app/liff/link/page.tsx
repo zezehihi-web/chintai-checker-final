@@ -253,7 +253,7 @@ export default function LiffLinkPage() {
   }, []);
 
   return (
-    <div className="min-h-dvh neon-page flex items-center justify-center p-6">
+    <div className="min-h-dvh bg-[#02060D] flex items-center justify-center p-6">
       <div className="neon-card backdrop-blur-sm rounded-3xl p-8 max-w-md w-full text-center">
         {status === 'loading' && (
           <>

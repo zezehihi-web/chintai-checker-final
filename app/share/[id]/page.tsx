@@ -234,7 +234,7 @@ export default function SharePage() {
   }
 
   return (
-    <div className="min-h-dvh bg-slate-50 text-slate-600 font-sans pb-20">
+    <div className="min-h-dvh bg-[#02060D] text-slate-600 font-sans pb-20">
       <header className="bg-white border-b border-slate-200 sticky top-0 z-50 shadow-sm">
         <div className="max-w-3xl mx-auto px-6 py-4 flex justify-center items-center">
           <h1 className="text-lg md:text-xl font-bold text-slate-800 tracking-tight">
