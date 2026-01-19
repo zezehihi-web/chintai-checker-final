@@ -20,7 +20,7 @@ declare global {
       init: (config: { liffId: string }) => Promise<void>;
       isLoggedIn: () => boolean;
       getAccessToken: () => string | null;
-      sendMessages: (messages: any[]) => Promise<void>;
+      sendMessages: (messages: unknown[]) => Promise<void>;
       closeWindow: () => void;
       getFriendship: () => Promise<{ friendFlag: boolean }>;
       openWindow: (params: { url: string; external: boolean }) => void;
@@ -32,6 +32,12 @@ export default function LiffLinkPage() {
   const [status, setStatus] = useState<'loading' | 'success' | 'error' | 'need_friend_add'>('loading');
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [caseToken, setCaseToken] = useState<string>('');
+
+  const getErrorMessageText = (error: unknown) => {
+    if (error instanceof Error) return error.message;
+    if (typeof error === 'string') return error;
+    return 'エラーが発生しました';
+  };
 
   // 連携処理を実行する関数
   const performLinking = async (token: string) => {
@@ -81,10 +87,10 @@ export default function LiffLinkPage() {
       setTimeout(() => {
         window.liff.closeWindow();
       }, 2000);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Link error:', error);
       setStatus('error');
-      setErrorMessage(error.message || 'エラーが発生しました');
+      setErrorMessage(getErrorMessageText(error));
     }
   };
 
@@ -106,7 +112,7 @@ export default function LiffLinkPage() {
           console.log('Friend add confirmed! Auto-linking...');
           await performLinking(caseToken);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.warn('Failed to check friendship on focus:', error);
       }
     };
@@ -151,9 +157,9 @@ export default function LiffLinkPage() {
         try {
           await window.liff.init({ liffId });
           console.log('LIFF initialized successfully');
-        } catch (initError: any) {
+        } catch (initError: unknown) {
           console.error('LIFF init error:', initError);
-          throw new Error(`LIFF初期化エラー: ${initError.message || '不明なエラー'}`);
+          throw new Error(`LIFF初期化エラー: ${getErrorMessageText(initError)}`);
         }
 
         // ログインチェック（iOS対応: 初期化直後はfalseを返すことがあるため、accessTokenで判定）
@@ -197,23 +203,25 @@ export default function LiffLinkPage() {
           }
 
           console.log('User is already a friend');
-        } catch (friendshipError: any) {
+        } catch (friendshipError: unknown) {
           console.warn('Failed to check friendship:', friendshipError);
           // 友だち状態の取得に失敗した場合は続行（古いLIFFバージョン対応）
         }
 
         // 4. 友だちの場合、そのまま連携処理を実行
         await performLinking(token);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('LIFF initialization error:', error);
-        console.error('Error stack:', error.stack);
-        console.error('Error details:', {
-          message: error.message,
-          name: error.name,
-          cause: error.cause
-        });
+        if (error instanceof Error) {
+          console.error('Error stack:', error.stack);
+          console.error('Error details:', {
+            message: error.message,
+            name: error.name,
+            cause: (error as { cause?: unknown }).cause,
+          });
+        }
         setStatus('error');
-        setErrorMessage(error.message || 'エラーが発生しました');
+        setErrorMessage(getErrorMessageText(error));
       }
     }
 
@@ -245,15 +253,15 @@ export default function LiffLinkPage() {
   }, []);
 
   return (
-    <div className="min-h-dvh bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-6">
-      <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-3xl p-8 shadow-xl max-w-md w-full text-center">
+    <div className="min-h-dvh neon-page flex items-center justify-center p-6">
+      <div className="neon-card backdrop-blur-sm rounded-3xl p-8 max-w-md w-full text-center">
         {status === 'loading' && (
           <>
             <div className="mb-6">
-              <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-blue-500"></div>
+              <div className="neon-spinner inline-block animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-transparent"></div>
             </div>
-            <h2 className="text-xl font-bold text-white mb-2">連携中...</h2>
-            <p className="text-slate-400 text-sm">
+            <h2 className="neon-title text-xl font-bold mb-2">連携中...</h2>
+            <p className="neon-muted text-sm">
               LINEアカウントと案件を紐づけています
             </p>
           </>
@@ -262,10 +270,10 @@ export default function LiffLinkPage() {
         {status === 'success' && (
           <>
             <div className="mb-6">
-              <div className="text-6xl">✅</div>
+              <div className="text-6xl" aria-hidden="true">✅</div>
             </div>
-            <h2 className="text-xl font-bold text-white mb-2">連携完了！</h2>
-            <p className="text-slate-400 text-sm">
+            <h2 className="neon-title text-xl font-bold mb-2">連携完了！</h2>
+            <p className="neon-muted text-sm">
               LINEに診断結果を送信しました。
               <br />
               このウィンドウは自動的に閉じます。
@@ -276,10 +284,10 @@ export default function LiffLinkPage() {
         {status === 'need_friend_add' && (
           <>
             <div className="mb-6">
-              <div className="text-6xl">👋</div>
+              <div className="text-6xl" aria-hidden="true">👋</div>
             </div>
-            <h2 className="text-xl font-bold text-white mb-4">まず友だち追加をお願いします</h2>
-            <p className="text-slate-400 text-sm mb-6">
+            <h2 className="neon-title text-xl font-bold mb-4">まず友だち追加をお願いします</h2>
+            <p className="neon-muted text-sm mb-6">
               診断結果をLINEに送信するには、<br />
               公式アカウントを友だち追加する必要があります。
             </p>
@@ -291,7 +299,7 @@ export default function LiffLinkPage() {
                   external: true
                 });
               }}
-              className="block w-full bg-gradient-to-r from-[#06C755] to-[#05b34c] hover:from-[#05b34c] hover:to-[#04a042] text-white font-bold py-3 px-6 rounded-xl mb-4 transition-all hover:scale-105 shadow-lg"
+              className="neon-btn-lime block w-full text-white font-bold py-3 px-6 rounded-2xl mb-4 transition-transform hover:scale-105"
             >
               <span className="flex items-center justify-center gap-2">
                 <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
@@ -301,7 +309,7 @@ export default function LiffLinkPage() {
               </span>
             </button>
 
-            <p className="text-slate-400 text-xs mb-4">
+            <p className="neon-muted text-xs mb-4">
               友だち追加が完了すると、<br />
               自動的に診断結果を送信します
             </p>
@@ -311,11 +319,11 @@ export default function LiffLinkPage() {
         {status === 'error' && (
           <>
             <div className="mb-6">
-              <div className="text-6xl">❌</div>
+              <div className="text-6xl" aria-hidden="true">❌</div>
             </div>
-            <h2 className="text-xl font-bold text-white mb-2">エラー</h2>
-            <p className="text-slate-400 text-sm mb-4">{errorMessage}</p>
-            <p className="text-slate-500 text-xs">
+            <h2 className="neon-title text-xl font-bold mb-2">エラー</h2>
+            <p className="neon-muted text-sm mb-4">{errorMessage}</p>
+            <p className="text-xs neon-muted">
               診断画面に戻って、もう一度「LINEで続き」ボタンを押してください。
             </p>
           </>

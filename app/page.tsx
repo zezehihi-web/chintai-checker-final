@@ -646,6 +646,11 @@ export default function Home() {
   const [shareId, setShareId] = useState<string | null>(null);
   const [isCreatingShare, setIsCreatingShare] = useState(false);
   const [isCreatingLineLink, setIsCreatingLineLink] = useState(false);
+
+  // タイトル画像（背景込み版が未配置でも表示が落ちないようフォールバック）
+  const TITLE_BG_IMAGE_PRIMARY = "/brand/title/title-neon-bg.png";
+  const TITLE_BG_IMAGE_FALLBACK = "/brand/title/title-neon2.png";
+  const [titleBgImageSrc, setTitleBgImageSrc] = useState<string>(TITLE_BG_IMAGE_PRIMARY);
   
   // カメラ関連
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -1108,16 +1113,21 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-dvh bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-slate-100 font-sans pb-20 relative overflow-hidden">
-      {/* 背景装飾 */}
-      <div className="fixed inset-0 -z-10">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-float"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }}></div>
-        <div className="absolute top-1/2 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl"></div>
-        {/* グリッドパターン */}
-        <div className="absolute inset-0 opacity-[0.02]" style={{
-          backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-          backgroundSize: '50px 50px'
+    <div className="min-h-dvh neon-room-bg text-slate-100 font-sans pb-20 relative overflow-hidden">
+      {/* 背景装飾：暗い部屋の奥行きを演出 */}
+      <div className="fixed inset-0 -z-10 pointer-events-none">
+        {/* 天井付近からの微かなネオン反射 */}
+        <div className="absolute top-0 left-1/4 w-80 h-40 bg-cyan-500/8 rounded-full blur-3xl"></div>
+        <div className="absolute top-0 right-1/4 w-60 h-32 bg-purple-500/6 rounded-full blur-3xl"></div>
+        {/* 部屋の隅からの微かな光漏れ */}
+        <div className="absolute bottom-0 left-0 w-96 h-48 bg-cyan-500/4 rounded-full blur-3xl"></div>
+        <div className="absolute bottom-0 right-0 w-72 h-36 bg-pink-500/3 rounded-full blur-3xl"></div>
+        {/* 床面のグリッドパターン（遠近感を出す） */}
+        <div className="absolute inset-0 opacity-[0.015]" style={{
+          backgroundImage: 'linear-gradient(rgba(0,229,255,0.3) 1px, transparent 1px), linear-gradient(90deg, rgba(0,229,255,0.3) 1px, transparent 1px)',
+          backgroundSize: '60px 60px',
+          transform: 'perspective(500px) rotateX(60deg) translateY(50%)',
+          transformOrigin: 'center bottom'
         }}></div>
       </div>
 
@@ -1133,9 +1143,23 @@ export default function Home() {
       {currentView === "top" && (
         <div className="max-w-3xl mx-auto p-6 md:p-10 animate-fade-in">
           <div className="text-center mb-10 mt-8 md:mt-12">
-            <h2 className="text-4xl md:text-7xl font-extrabold text-white mb-3 md:mb-4 leading-tight">
-              賃貸初期費用<span className="text-yellow-400 font-extrabold">AI</span><span className="text-blue-400">診断</span>
-            </h2>
+            <div className="mx-auto w-full max-w-sm md:max-w-xl mb-4 md:mb-5">
+              <div className="neon-title-bg-stack">
+                  <img
+                    src={titleBgImageSrc}
+                    alt="チンチェカ タイトル"
+                    className="neon-title-bg-static"
+                    onError={() => {
+                      if (titleBgImageSrc === TITLE_BG_IMAGE_FALLBACK) return;
+                      console.warn("[Title] bg image not found. Falling back.", {
+                        primary: TITLE_BG_IMAGE_PRIMARY,
+                        fallback: TITLE_BG_IMAGE_FALLBACK,
+                      });
+                      setTitleBgImageSrc(TITLE_BG_IMAGE_FALLBACK);
+                    }}
+                  />
+              </div>
+            </div>
             <p className="text-slate-400 text-xs md:text-sm">
               AIが図面と見積もりを照合し、<br className="md:hidden"/>交渉可能な項目を洗い出します。
             </p>

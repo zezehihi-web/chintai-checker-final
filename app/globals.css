@@ -6,6 +6,131 @@ body {
   background-color: #f8fafc;
 }
 
+/* =========================
+   Neon theme (LIFF UI)
+   Tokens are centralized here.
+   Enable by adding `theme-neon` to <body>.
+   ========================= */
+body.theme-neon {
+  /* Base surfaces (RGB triplets for easy alpha use) */
+  --neon-bg: 8 10 14;          /* near-black, slightly gray */
+  --neon-bg-2: 12 14 20;       /* subtle depth */
+  --neon-surface: 14 18 26;    /* cards */
+
+  /* Text */
+  --neon-fg: 241 245 249;      /* near-white */
+  --neon-muted: 148 163 184;   /* slate-400-ish */
+
+  /* Accents */
+  --neon-cyan: 34 211 238;
+  --neon-pink: 244 114 182;
+  --neon-lime: 163 230 53;
+  --neon-yellow: 250 204 21;
+  --neon-purple: 168 85 247;
+
+  /* Default border color (accent w/ low opacity at use-site) */
+  --neon-border: var(--neon-cyan);
+
+  color-scheme: dark;
+  color: rgb(var(--neon-fg));
+  background-color: rgb(var(--neon-bg));
+}
+
+/* Page background: dark + subtle neon glows */
+.neon-page {
+  background:
+    radial-gradient(55% 55% at 15% 10%, rgba(var(--neon-cyan) / 0.22), transparent 60%),
+    radial-gradient(60% 60% at 85% 20%, rgba(var(--neon-pink) / 0.18), transparent 62%),
+    radial-gradient(65% 65% at 55% 95%, rgba(var(--neon-purple) / 0.12), transparent 60%),
+    linear-gradient(180deg, rgb(var(--neon-bg)), rgb(var(--neon-bg-2)));
+}
+
+/* Card: dark surface + vivid outline + outer glow */
+.neon-card {
+  background-color: rgba(var(--neon-surface) / 0.78);
+  border: 1px solid rgba(var(--neon-border) / 0.28);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 0 18px rgba(var(--neon-cyan) / 0.18),
+    0 0 36px rgba(var(--neon-pink) / 0.10),
+    0 16px 40px rgba(0, 0, 0, 0.55);
+}
+
+.neon-title {
+  color: rgb(var(--neon-fg));
+  text-shadow:
+    0 0 14px rgba(var(--neon-cyan) / 0.20),
+    0 0 28px rgba(var(--neon-cyan) / 0.10);
+}
+
+.neon-title-cyan {
+  /* Works even without `theme-neon` */
+  color: #e6fcff;
+  text-shadow:
+    0 0 1px rgba(255, 255, 255, 0.35),
+    0 0 6px rgba(0, 229, 255, 0.35),
+    0 0 14px rgba(0, 229, 255, 0.22),
+    0 0 26px rgba(168, 85, 247, 0.16),
+    0 0 40px rgba(244, 114, 182, 0.10);
+}
+
+.neon-muted {
+  color: rgb(var(--neon-muted));
+}
+
+/* Primary button: neon outline + stronger glow */
+.neon-btn-primary {
+  background-color: rgba(var(--neon-surface) / 0.35);
+  border: 1px solid rgba(var(--neon-cyan) / 0.9);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 0 16px rgba(var(--neon-cyan) / 0.28),
+    0 0 34px rgba(var(--neon-cyan) / 0.14);
+}
+
+.neon-btn-primary:hover {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+    0 0 22px rgba(var(--neon-cyan) / 0.34),
+    0 0 44px rgba(var(--neon-cyan) / 0.18);
+}
+
+.neon-btn-secondary {
+  background-color: rgba(var(--neon-surface) / 0.25);
+  border: 1px solid rgba(var(--neon-pink) / 0.55);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.03) inset,
+    0 0 12px rgba(var(--neon-pink) / 0.16);
+}
+
+.neon-btn-secondary:hover {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+    0 0 18px rgba(var(--neon-pink) / 0.22);
+}
+
+/* Lime variant (useful for "friend add" CTA without solid fill) */
+.neon-btn-lime {
+  background-color: rgba(var(--neon-surface) / 0.28);
+  border: 1px solid rgba(var(--neon-lime) / 0.85);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 0 16px rgba(var(--neon-lime) / 0.22);
+}
+
+.neon-btn-lime:hover {
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+    0 0 22px rgba(var(--neon-lime) / 0.30);
+}
+
+/* Spinner with neon outline */
+.neon-spinner {
+  border-top-color: rgba(var(--neon-cyan) / 0.9);
+  border-bottom-color: rgba(var(--neon-cyan) / 0.55);
+  box-shadow: 0 0 18px rgba(var(--neon-cyan) / 0.22);
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -137,4 +262,144 @@ body {
     0 1px 0 rgba(255, 255, 255, 1),
     0 -1px 0 rgba(255, 255, 255, 1),
     0 2px 2px rgba(0, 0, 0, 0.45);
+}
+
+/* ==================================================
+   Neon Outline Text (中抜き＋縁線発光)
+   ================================================== */
+.neon-outline {
+  color: transparent;
+  -webkit-text-stroke: 1.5px #00e5ff;
+  text-shadow:
+    0 0 6px rgba(0, 229, 255, 0.6),
+    0 0 14px rgba(0, 229, 255, 0.4),
+    0 0 28px rgba(0, 229, 255, 0.2),
+    0 0 40px rgba(168, 85, 247, 0.15);
+}
+
+.neon-outline-strong {
+  color: transparent;
+  -webkit-text-stroke: 2.5px #00e5ff;
+  text-shadow:
+    0 0 8px rgba(0, 229, 255, 0.8),
+    0 0 18px rgba(0, 229, 255, 0.6),
+    0 0 36px rgba(0, 229, 255, 0.35),
+    0 0 55px rgba(168, 85, 247, 0.25),
+    0 0 80px rgba(244, 114, 182, 0.15);
+  animation: neon-flicker 3s ease-in-out infinite;
+}
+
+@keyframes neon-flicker {
+  0%, 100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.85; }
+  94% { opacity: 1; }
+  96% { opacity: 0.9; }
+  97% { opacity: 1; }
+}
+
+/* ==================================================
+   Neon Title Image (透過PNG向け glow + pulse + flicker)
+   - 既存の "neon-flicker" の揺らぎを流用（opacity）
+   - 画像本体は filter: drop-shadow を pulse させる
+   ================================================== */
+.neon-title-image {
+  /* 常時ほんのり発光（透過PNGの輪郭にだけ乗る） */
+  filter:
+    brightness(1.02)
+    contrast(1.02)
+    drop-shadow(0 0 6px rgba(0, 229, 255, 0.35))
+    drop-shadow(0 0 14px rgba(0, 229, 255, 0.22))
+    drop-shadow(0 0 26px rgba(168, 85, 247, 0.14))
+    drop-shadow(0 0 40px rgba(244, 114, 182, 0.10));
+  will-change: filter, opacity;
+}
+
+@keyframes neon-title-pulse {
+  0%, 100% {
+    filter:
+      brightness(1.01)
+      contrast(1.01)
+      drop-shadow(0 0 5px rgba(0, 229, 255, 0.30))
+      drop-shadow(0 0 12px rgba(0, 229, 255, 0.18))
+      drop-shadow(0 0 22px rgba(168, 85, 247, 0.12))
+      drop-shadow(0 0 34px rgba(244, 114, 182, 0.08));
+  }
+  55% {
+    filter:
+      brightness(1.06)
+      contrast(1.04)
+      drop-shadow(0 0 7px rgba(0, 229, 255, 0.48))
+      drop-shadow(0 0 18px rgba(0, 229, 255, 0.30))
+      drop-shadow(0 0 34px rgba(168, 85, 247, 0.18))
+      drop-shadow(0 0 52px rgba(244, 114, 182, 0.12));
+  }
+}
+
+.neon-title-image-animate {
+  /* pulse(ゆっくり) + flicker(時々チカッ) */
+  animation:
+    neon-title-pulse 5.2s ease-in-out infinite,
+    neon-flicker 3s ease-in-out infinite;
+}
+
+/* ==================================================
+   Neon Title BG Image (背景込み画像を2枚重ねて「文字だけ点灯」)
+   - ベース: 画像そのまま
+   - グロー: 同じ画像を screen/plus-lighter で重ね、明部（文字）だけが光る見え方に
+   - エッジ: mask + ビネットで境目を消す
+   ================================================== */
+.neon-title-bg-stack {
+  position: relative;
+  display: grid;
+  border-radius: 20px;
+  overflow: hidden;
+
+  /* エッジを“ごく薄く”フェード（やりすぎると四隅が暗く見える原因になる） */
+  -webkit-mask-image: radial-gradient(140% 120% at 50% 50%, rgba(0, 0, 0, 1) 96%, transparent 100%);
+  mask-image: radial-gradient(140% 120% at 50% 50%, rgba(0, 0, 0, 1) 96%, transparent 100%);
+}
+
+.neon-title-bg-stack > img {
+  grid-area: 1 / 1;
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* タイトル画像（静止表示用）
+   - flicker/pulse（アニメ）と、screen合成レイヤーは一旦撤去
+   - 白飛び軽減のため、固定値でほんの少しだけ抑える */
+.neon-title-bg-static {
+  opacity: 1;
+  filter: none;
+}
+
+/* ==================================================
+   Dark Room Background (暗い部屋っぽい奥行きのある背景)
+   ================================================== */
+.neon-room-bg {
+  background:
+    /* 上部からの微かな環境光 */
+    radial-gradient(ellipse 120% 50% at 50% -10%, rgba(20, 30, 50, 0.8), transparent 55%),
+    /* 下部の床面からの反射光 */
+    radial-gradient(ellipse 140% 40% at 50% 110%, rgba(0, 229, 255, 0.04), transparent 50%),
+    /* 左上のネオン光源 */
+    radial-gradient(ellipse 50% 50% at 10% 15%, rgba(0, 229, 255, 0.12), transparent 50%),
+    /* 右上のネオン光源 */
+    radial-gradient(ellipse 45% 45% at 90% 20%, rgba(168, 85, 247, 0.08), transparent 50%),
+    /* 中央奥からの微かな光 */
+    radial-gradient(ellipse 60% 60% at 50% 30%, rgba(244, 114, 182, 0.04), transparent 55%),
+    /* メインの奥行きグラデーション：手前が暗く、奥に向かって微かに明るい */
+    linear-gradient(
+      180deg,
+      rgb(4, 6, 12) 0%,
+      rgb(6, 9, 16) 30%,
+      rgb(8, 12, 22) 60%,
+      rgb(5, 7, 14) 100%
+    );
+  /* 部屋の奥行きを出すビネット効果 */
+  box-shadow:
+    inset 0 0 150px 60px rgba(0, 0, 0, 0.7),
+    inset 0 -50px 100px rgba(0, 0, 0, 0.3);
 }
