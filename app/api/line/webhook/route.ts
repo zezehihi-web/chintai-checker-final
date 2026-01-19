@@ -223,18 +223,6 @@ export async function POST(req: Request) {
                         },
                       ],
                     },
-                    {
-                      type: 'button',
-                      style: 'primary',
-                      color: '#FF9500',
-                      height: 'sm',
-                      action: {
-                        type: 'message',
-                        label: '相談したい',
-                        text: '相談したい',
-                      },
-                      margin: 'md',
-                    },
                   ],
                 },
                 styles: {
@@ -298,21 +286,12 @@ export async function POST(req: Request) {
                   contents: [
                     {
                       type: 'text',
-                      text: 'ありがとうございます',
+                      text: '申し込み希望ですか？',
                       weight: 'bold',
                       size: 'lg',
                       color: '#333333',
                       margin: 'md',
                       align: 'center',
-                    },
-                    {
-                      type: 'text',
-                      text: 'こちらの物件へのお申し込みについてお伺いします',
-                      size: 'sm',
-                      color: '#666666',
-                      margin: 'md',
-                      align: 'center',
-                      wrap: true,
                     },
                     {
                       type: 'separator',
@@ -331,19 +310,19 @@ export async function POST(req: Request) {
                           height: 'sm',
                           action: {
                             type: 'message',
-                            label: 'お申し込みする',
-                            text: '申し込みする',
+                            label: '申し込みをしたい',
+                            text: '申し込みをしたい',
                           },
                         },
                         {
                           type: 'button',
                           style: 'secondary',
-                          color: '#808080',
+                          color: '#9CA3AF',
                           height: 'sm',
                           action: {
                             type: 'message',
-                            label: '他の物件を探す',
-                            text: '他の物件を探す',
+                            label: 'いいえ',
+                            text: 'いいえ',
                           },
                         },
                         {
@@ -376,22 +355,22 @@ export async function POST(req: Request) {
           // 「はい」がapplication_intentステップの後に押された場合は、詳細表示へ（後続の処理へ）
         }
 
-        // 「いいえ」ボタン - 物件が違う場合、画像送信を促す
+        // 「いいえ」ボタン
         if (messageText === 'いいえ' && caseId) {
-          console.log('[Button] User selected "いいえ" - requesting images');
+          console.log('[Button] User selected "いいえ"');
 
           await client.replyMessage(event.replyToken, {
             type: 'text',
-            text: '承知いたしました。\n\nお手数ですが、ご希望の物件の募集図面と初期費用の見積もりをこちらのLINEにお送りいただけますでしょうか？\n\n担当者が確認の上、診断結果をお送りいたします。',
+            text: '承知しました。物件が見つかり次第、またツールをご利用くださいませ',
           });
 
-          await setConversationState(userId, 'waiting_images', caseId);
+          await setConversationState(userId, 'completed', caseId);
           continue;
         }
 
-        // 「申し込みする」ボタン - お申し込み希望
-        if (messageText === '申し込みする' && caseId) {
-          console.log('[Button] User selected "申し込みする"');
+        // 「申し込みをしたい」ボタン - お申し込み希望
+        if ((messageText === '申し込みをしたい' || messageText === '申し込みする') && caseId) {
+          console.log('[Button] User selected "申し込みをしたい"');
 
           await client.replyMessage(event.replyToken, {
             type: 'text',
@@ -435,7 +414,7 @@ export async function POST(req: Request) {
 
           await client.replyMessage(event.replyToken, {
             type: 'text',
-            text: '承知いたしました。\n\nどのようなことでもお気軽にご相談ください。まずは、ざっくりとご相談内容を教えていただけますか？\n\n担当者より改めてご連絡させていただきます。',
+            text: '相談内容をご送信ください🙇‍♂️\nスタッフが直接確認し、ご返答させていただきます。',
           });
 
           await setConversationState(userId, 'consultation', caseId);

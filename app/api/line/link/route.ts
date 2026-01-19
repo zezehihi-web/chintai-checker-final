@@ -227,18 +227,6 @@ export async function POST(req: Request) {
                     },
                   ],
                 },
-                {
-                  type: 'button',
-                  style: 'primary',
-                  color: '#FF9500',
-                  height: 'sm',
-                  action: {
-                    type: 'message',
-                    label: '相談したい',
-                    text: '相談したい',
-                  },
-                  margin: 'md',
-                },
               ],
             },
             styles: {
