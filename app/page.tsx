@@ -484,26 +484,6 @@ const FortuneResult = ({ result }: { result: AnalysisResult }) => {
             エンタメとしてお楽しみください🔮✨
           </p>
         </div>
-
-        {/* 部屋探しへの導線 */}
-        <div className="text-center animate-fade-in-up" style={{ animationDelay: '0.9s' }}>
-          <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 backdrop-blur-sm rounded-2xl p-6 border border-green-400/30">
-            <p className="text-green-300 text-sm mb-4">
-              🏠 運命の物件を見つけに行きませんか？
-            </p>
-            <a
-              href={process.env.NEXT_PUBLIC_LINE_URL || "https://lin.ee/Hnl9hkO"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-gradient-to-r from-[#06C755] to-[#05b34c] text-white font-bold py-3 px-8 rounded-full shadow-lg hover:scale-105 transition-all"
-            >
-              <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">
-                <path d="M12 2C6.48 2 2 5.56 2 10.1c0 2.45 1.3 4.63 3.4 6.1-.15.8-.5 2.15-.56 2.47-.05.24.1.47.34.47.1 0 .2-.03.27-.08.05-.03 2.6-1.73 3.63-2.45.62.17 1.28.26 1.95.26 5.52 0 10-3.56 10-8.1S17.52 2 12 2z"/>
-              </svg>
-              LINEで相談する
-            </a>
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -1060,7 +1040,11 @@ export default function Home() {
   };
   
   const handleDownloadImage = async () => {
-    if (!resultRef.current) return;
+    if (!resultRef.current) {
+      console.error("resultRef.current is null");
+      alert("保存に失敗しました：結果画面が見つかりません");
+      return;
+    }
     try {
       const html2canvas = (await import("html2canvas")).default;
       const exportBg = result?.is_secret_mode ? "#0f172a" : "#ffffff";
@@ -1088,6 +1072,17 @@ export default function Home() {
             (exportEl as HTMLElement).style.opacity = "1";
             (exportEl as HTMLElement).style.transform = "none";
             (exportEl as HTMLElement).style.filter = "none";
+            
+            // 裏コマンドモードの場合、FortuneResultコンポーネント内の要素も確認
+            if (result?.is_secret_mode) {
+              const fortuneElements = clonedDoc.querySelectorAll('[class*="bg-gradient"]');
+              fortuneElements.forEach((el) => {
+                const htmlEl = el as HTMLElement;
+                // グラデーション背景を保持しつつ、不透明度を確保
+                htmlEl.style.opacity = "1";
+                htmlEl.style.transform = "none";
+              });
+            }
           }
         },
       } as Parameters<typeof html2canvas>[1]);
@@ -1429,7 +1424,7 @@ export default function Home() {
             {/* 裏コマンドモード: 占い風UI */}
             {result.is_secret_mode ? (
               <>
-                <div id="result-export" ref={resultRef} style={{ backgroundColor: "#ffffff" }} className="rounded-3xl overflow-hidden">
+                <div id="result-export" ref={resultRef} style={{ backgroundColor: "#0f172a" }} className="rounded-3xl overflow-hidden">
                   <FortuneResult result={result} />
                 </div>
 
@@ -1447,31 +1442,95 @@ export default function Home() {
                     {isCreatingShare ? "⏳ 準備中..." : isCopied ? "✨ コピーしました！" : "🔗 共有用リンクコピー"}
                   </button>
                 </div>
-                {/* LINE連携ボタン */}
-                <button 
-                  onClick={handleLineLink} 
-                  disabled={isCreatingLineLink}
-                  className="col-span-2 bg-gradient-to-r from-[#06C755] to-[#05b34c] text-white py-4 rounded-xl font-black text-base shadow-lg hover:from-[#05b34c] hover:to-[#04a042] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 transition-all hover:scale-[1.02] relative overflow-hidden group"
-                  style={{
-                    boxShadow: '0 10px 30px rgba(6, 199, 85, 0.3)'
-                  }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                  <div className="relative z-10 flex items-center gap-3">
-                    <div className="w-6 h-6 flex items-center justify-center">
+              </div>
+
+              <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+                <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
+                <div className="relative z-10">
+                  {/* LINE連携ボタン（CV） */}
+                  <button 
+                    onClick={handleLineLink} 
+                    disabled={isCreatingLineLink}
+                    className="relative w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5"
+                    style={{
+                      boxShadow: '0 12px 36px rgba(6, 199, 85, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28)'
+                    }}
+                  >
+                    {/* シマー（約4秒おき） */}
+                    <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-20 animate-shine"></div>
+
+                    <div className="relative flex items-center justify-center gap-4">
+                      {/* 左側：LINE公式ロゴ */}
                       {isCreatingLineLink ? (
-                        <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-white"></div>
+                        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-white/90 flex-shrink-0" />
                       ) : (
-                        <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6">
-                          <path d="M12 2C6.48 2 2 5.56 2 10.1c0 2.45 1.3 4.63 3.4 6.1-.15.8-.5 2.15-.56 2.47-.05.24.1.47.34.47.1 0 .2-.03.27-.08.05-.03 2.6-1.73 3.63-2.45.62.17 1.28.26 1.95.26 5.52 0 10-3.56 10-8.1S17.52 2 12 2z"/>
-                        </svg>
+                        <NextImage
+                          src="/line-logo.png"
+                          alt="LINEロゴ"
+                          width={44}
+                          height={44}
+                          className="flex-shrink-0 drop-shadow-md"
+                        />
+                      )}
+
+                      {/* 右側：テキスト（2行） */}
+                      {isCreatingLineLink ? (
+                        <div className="text-xl md:text-2xl font-extrabold text-white drop-shadow-md">
+                          準備中...
+                        </div>
+                      ) : (
+                        (result.discount_amount ?? 0) > 0 ? (
+                          <div className="flex flex-col text-left leading-tight">
+                            <span className="text-lg md:text-xl font-bold text-white drop-shadow-md">
+                              <span className="text-[#ff0000] font-extrabold text-xl md:text-2xl text-outline-white-strong mr-1">割引済み</span>
+                              <span className="text-white">の見積もりを</span>
+                            </span>
+                            <span className="text-xl md:text-2xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col text-left leading-tight">
+                            <span className="text-lg md:text-xl font-bold text-white drop-shadow-md">詳細の見積りを</span>
+                            <span className="text-xl md:text-2xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
+                          </div>
+                        )
                       )}
                     </div>
-                    <span className="tracking-wide">
-                      {isCreatingLineLink ? "準備中..." : "LINEで続きを確認"}
-                    </span>
+                  </button>
+                </div>
+                <div className="relative z-10 mt-6 pt-6 border-t border-slate-700">
+                  <div className="flex flex-wrap gap-2 md:gap-4 text-[10px] md:text-sm justify-center md:justify-start">
+                    <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                      <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
+                        <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>📅</span>
+                      </div>
+                      <span className="font-black tracking-tight text-[10px] md:text-sm whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>365日対応</span>
+                    </div>
+                    <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                      <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-amber-500/20 to-amber-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
+                        <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>🏆</span>
+                      </div>
+                      <span className="font-black tracking-tight text-[10px] md:text-sm whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>実績800件</span>
+                    </div>
+                    <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                      <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
+                        <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>📱</span>
+                      </div>
+                      <span className="font-black tracking-tight text-[10px] md:text-sm whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>来店不要</span>
+                    </div>
+                    <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                      <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
+                        <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>💰</span>
+                      </div>
+                      <span className="font-black tracking-tight text-[10px] md:text-sm whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>仲介手数料無料</span>
+                    </div>
+                    <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                      <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
+                        <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>✅</span>
+                      </div>
+                      <span className="font-black tracking-tight text-[10px] md:text-sm whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>不要オプション無し</span>
+                    </div>
                   </div>
-                </button>
+                </div>
               </div>
               
               <div className="mt-4 text-center">
