@@ -648,11 +648,6 @@ export default function Home() {
   const [shareId, setShareId] = useState<string | null>(null);
   const [isCreatingShare, setIsCreatingShare] = useState(false);
   const [isCreatingLineLink, setIsCreatingLineLink] = useState(false);
-
-  // タイトル画像（背景込み版が未配置でも表示が落ちないようフォールバック）
-  const TITLE_BG_IMAGE_PRIMARY = "/brand/title/title-neon-bg.png";
-  const TITLE_BG_IMAGE_FALLBACK = "/brand/title/title-neon2.png";
-  const [titleBgImageSrc, setTitleBgImageSrc] = useState<string>(TITLE_BG_IMAGE_PRIMARY);
   
   // カメラ関連
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -1149,41 +1144,42 @@ export default function Home() {
       {/* ================= TOP VIEW ================= */}
       {currentView === "top" && (
         <div className="max-w-3xl mx-auto p-6 md:p-10 animate-fade-in">
-          <div className="text-center mb-10 mt-8 md:mt-12">
-            <div className="mx-auto w-full max-w-64 md:max-w-96 mb-3 md:mb-4">
-              <div className="neon-title-bg-stack">
-                  <img
-                    src={titleBgImageSrc}
-                    alt="チンチェカ タイトル"
-                    className="neon-title-bg-static"
-                    onError={() => {
-                      if (titleBgImageSrc === TITLE_BG_IMAGE_FALLBACK) return;
-                      console.warn("[Title] bg image not found. Falling back.", {
-                        primary: TITLE_BG_IMAGE_PRIMARY,
-                        fallback: TITLE_BG_IMAGE_FALLBACK,
-                      });
-                      setTitleBgImageSrc(TITLE_BG_IMAGE_FALLBACK);
-                    }}
-                  />
+          <div className="text-center mb-6 mt-4 md:mt-6">
+            <div className="mx-auto w-full max-w-72 md:max-w-[26rem] mb-1">
+              <h2 className="neonHeader text-center font-black tracking-widest text-xl md:text-3xl leading-none whitespace-nowrap transform scale-x-105">
+                AIが見積書を適正か診断
+              </h2>
+            </div>
+            <div className="mx-auto w-full max-w-64 md:max-w-96 mb-2">
+              <div className="neonTitleWrap">
+                <img
+                  src="/chincheka_final.png?v=2"
+                  alt="チンチェカ タイトル"
+                  width={1024}
+                  height={1024}
+                  className="neonTitleBase w-full h-auto select-none"
+                  loading="eager"
+                  decoding="async"
+                />
+                <img
+                  src="/chincheka_final.png?v=2"
+                  alt=""
+                  aria-hidden="true"
+                  width={1024}
+                  height={1024}
+                  className="neonGlowLayer w-full h-auto select-none"
+                  loading="eager"
+                  decoding="async"
+                />
               </div>
             </div>
-            <h2 className="mx-auto w-full text-yellow-300 font-extrabold tracking-tight text-sm md:text-base leading-snug drop-shadow-sm">
-              AIが図面と見積もりを照合し、<br className="md:hidden" />交渉可能な項目を洗い出します。
-            </h2>
-          </div>
-
-          {/* 撮影のコツ */}
-          <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-2xl p-4 mb-8 animate-fade-in-up">
-            <div className="flex items-start gap-3">
-              <span className="text-2xl">📸</span>
-              <div>
-                <p className="text-amber-300 font-bold text-xs mb-1.5">撮影のコツ</p>
-                <ul className="text-amber-200/80 text-[10px] space-y-0.5">
-                  <li>・<span className="font-bold text-amber-200">平らな場所</span>に置いて正面から</li>
-                  <li>・<span className="font-bold text-amber-200">反射を避けて</span>全体が見える状態</li>
-                  <li>・<span className="font-bold text-amber-200">ピントを合わせて</span>撮影</li>
-                </ul>
-              </div>
+            <div className="mx-auto w-full text-center">
+              <p className="text-cyan-50 font-extrabold text-lg sm:text-2xl md:text-5xl leading-tight whitespace-nowrap drop-shadow-sm">
+                「<span className="text-[#FFD84D] font-black">見積書</span>」と「<span className="text-[#FFD84D] font-black">募集図面</span>」を
+              </p>
+              <p className="text-cyan-50 font-extrabold text-lg sm:text-2xl md:text-5xl leading-tight whitespace-nowrap drop-shadow-sm">
+                ↓↓貼るだけ↓↓
+              </p>
             </div>
           </div>
 
@@ -1309,18 +1305,34 @@ export default function Home() {
             </div>
           </div>
 
+          {/* 撮影のコツ（アップロードボックス直下） */}
+          <div className="mt-2 md:mt-3 tipsCard text-left">
+            <div className="flex flex-col gap-1">
+              <p className="tipsCard__title text-xs md:text-sm leading-tight">
+                📸撮影のコツ
+              </p>
+              <p className="tipsCard__text text-xs md:text-sm leading-tight whitespace-nowrap">
+                正面から / 反射しないように / ピントを合わせて
+              </p>
+            </div>
+          </div>
+
           <div className="text-center mt-6">
             {!isLoading ? (
               <button
                 onClick={handleAnalyze}
                 disabled={!estimateFile}
-                className={`w-full md:w-auto px-8 md:px-16 py-3 md:py-4 rounded-xl font-bold text-base md:text-lg shadow-xl transition-all ${
+                className={`w-full md:w-auto px-8 md:px-16 py-5 md:py-6 rounded-xl font-bold shadow-xl transition-all ${
                   !estimateFile 
                     ? "bg-slate-700 text-slate-500 cursor-not-allowed shadow-none" 
                     : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/30"
                 }`}
               >
-                {!estimateFile ? "見積書をアップロード" : "適正価格を診断"}
+                {!estimateFile ? (
+                  <span className="text-4xl md:text-5xl leading-none">診断開始</span>
+                ) : (
+                  <span className="text-xl md:text-2xl">適正価格を診断</span>
+                )}
               </button>
             ) : (
               <div className={`backdrop-blur-sm rounded-2xl p-6 border shadow-xl max-w-md mx-auto ${

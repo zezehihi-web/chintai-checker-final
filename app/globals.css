@@ -75,6 +75,138 @@ body.theme-neon {
     0 0 40px rgba(244, 114, 182, 0.10);
 }
 
+.cyber-blue-header {
+  color: #00E5FF;
+  text-shadow:
+    0 0 6px rgba(0, 229, 255, 0.40),
+    0 0 14px rgba(0, 229, 255, 0.28),
+    0 0 28px rgba(0, 229, 255, 0.20),
+    0 0 40px rgba(42, 168, 255, 0.14);
+}
+
+/* ==================================================
+   Neon flicker (title area)
+   - stable glow + subtle pulse + occasional flicker
+   ================================================== */
+.neonHeader {
+  color: #00E5FF;
+  text-shadow:
+    0 0 6px rgba(0, 229, 255, 0.32),
+    0 0 14px rgba(0, 229, 255, 0.22),
+    0 0 28px rgba(0, 229, 255, 0.16);
+  filter:
+    drop-shadow(0 0 8px rgba(0, 229, 255, 0.28))
+    drop-shadow(0 0 18px rgba(0, 229, 255, 0.18));
+  animation: neon-header-live 4.8s ease-in-out infinite;
+}
+
+@keyframes neon-header-live {
+  0%, 100% {
+    opacity: 1;
+    filter:
+      drop-shadow(0 0 8px rgba(0, 229, 255, 0.26))
+      drop-shadow(0 0 18px rgba(0, 229, 255, 0.16));
+  }
+  50% {
+    opacity: 1;
+    filter:
+      drop-shadow(0 0 10px rgba(0, 229, 255, 0.34))
+      drop-shadow(0 0 24px rgba(0, 229, 255, 0.22))
+      drop-shadow(0 0 36px rgba(42, 168, 255, 0.10));
+  }
+  /* flicker cluster (very short, subtle) */
+  84% {
+    opacity: 0.86;
+    filter:
+      drop-shadow(0 0 7px rgba(0, 229, 255, 0.20))
+      drop-shadow(0 0 14px rgba(0, 229, 255, 0.12));
+  }
+  86% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 0.92;
+  }
+  92% {
+    opacity: 1;
+  }
+}
+
+.neonTitleWrap {
+  position: relative;
+  display: block;
+}
+
+.neonTitleBase {
+  position: relative;
+  z-index: 0;
+}
+
+.neonGlowLayer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  mix-blend-mode: screen;
+  opacity: 0.55;
+  filter:
+    blur(1.6px)
+    brightness(1.10)
+    contrast(1.08)
+    drop-shadow(0 0 10px rgba(0, 229, 255, 0.42))
+    drop-shadow(0 0 22px rgba(0, 229, 255, 0.24))
+    drop-shadow(0 0 34px rgba(42, 168, 255, 0.12));
+  animation: neon-image-live 4.8s ease-in-out infinite;
+}
+
+@supports (mix-blend-mode: plus-lighter) {
+  .neonGlowLayer {
+    mix-blend-mode: plus-lighter;
+  }
+}
+
+@keyframes neon-image-live {
+  0%, 100% {
+    opacity: 0.50;
+    filter:
+      blur(1.4px)
+      brightness(1.06)
+      contrast(1.06)
+      drop-shadow(0 0 8px rgba(0, 229, 255, 0.34))
+      drop-shadow(0 0 18px rgba(0, 229, 255, 0.18))
+      drop-shadow(0 0 28px rgba(42, 168, 255, 0.10));
+  }
+  50% {
+    opacity: 0.72;
+    filter:
+      blur(2.1px)
+      brightness(1.18)
+      contrast(1.10)
+      drop-shadow(0 0 14px rgba(0, 229, 255, 0.50))
+      drop-shadow(0 0 28px rgba(0, 229, 255, 0.28))
+      drop-shadow(0 0 44px rgba(42, 168, 255, 0.14));
+  }
+  /* flicker cluster */
+  84% {
+    opacity: 0.58;
+  }
+  85% {
+    opacity: 0.86;
+  }
+  86% {
+    opacity: 0.62;
+  }
+  87% {
+    opacity: 0.78;
+  }
+  90% {
+    opacity: 0.66;
+  }
+  92% {
+    opacity: 0.72;
+  }
+}
+
 .neon-muted {
   color: rgb(var(--neon-muted));
 }
@@ -374,6 +506,36 @@ body.theme-neon {
 .neon-title-bg-static {
   opacity: 1;
   filter: none;
+}
+
+/* ==================================================
+   Tips Card (撮影のコツ) - screenshot-like brown + gold rim
+   ================================================== */
+.tipsCard {
+  background: linear-gradient(
+    180deg,
+    #3a2412 0%,
+    #2b170a 55%,
+    #241206 100%
+  ) !important;
+  border: 2px solid #8a5a1d !important;
+  /* match upload boxes: rounded-2xl (= 1rem) */
+  border-radius: 1rem;
+  box-shadow:
+    0 10px 30px rgba(0,0,0,0.45),
+    inset 0 1px 0 rgba(255,210,120,0.18),
+    inset 0 -10px 18px rgba(0,0,0,0.35);
+  padding: 10px 14px;
+}
+
+.tipsCard__title {
+  color: #f2c86b;
+  font-weight: 800;
+}
+
+.tipsCard__text {
+  color: #e6c27a;
+  font-weight: 600;
 }
 
 /* ==================================================
