@@ -3,8 +3,21 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import NextImage from "next/image";
 
 // GA4イベント送信ヘルパー関数
-const trackButtonClick = (buttonLabel: string) => {
+const trackButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
   if (typeof window !== 'undefined' && window.gtag) {
+    const button = event.currentTarget;
+    
+    // 1. innerTextまたはtextContentからテキストを取得
+    let buttonLabel = button.innerText || button.textContent || '';
+    
+    // 2. 改行や余分な空白を削除（トリム）
+    buttonLabel = buttonLabel.trim().replace(/\s+/g, ' ');
+    
+    // 3. テキストがない場合はaria-label、それもなければidをフォールバック
+    if (!buttonLabel) {
+      buttonLabel = button.getAttribute('aria-label') || button.id || 'ボタン';
+    }
+    
     window.gtag('event', 'click_button', {
       event_category: 'engagement',
       event_label: buttonLabel,
@@ -189,7 +202,7 @@ const CameraCapture = ({
         <div className="flex items-center justify-between">
           <button
             onClick={(e) => {
-              trackButtonClick('閉じる');
+              trackButtonClick(e);
               onClose();
             }}
             className="text-white font-bold flex items-center gap-2 px-4 py-2 rounded-full bg-white/20 backdrop-blur-sm"
@@ -206,7 +219,7 @@ const CameraCapture = ({
             <p className="text-white text-lg mb-4">{error}</p>
             <button
               onClick={(e) => {
-                trackButtonClick('ギャラリーから選択');
+                trackButtonClick(e);
                 onClose();
               }}
               className="bg-white text-black px-6 py-3 rounded-full font-bold"
@@ -266,10 +279,11 @@ const CameraCapture = ({
         <div className="absolute bottom-8 left-0 right-0 flex justify-center z-20 pb-safe">
           <button
             onClick={(e) => {
-              trackButtonClick('撮影');
+              trackButtonClick(e);
               handleCapture();
             }}
             className="w-20 h-20 bg-white rounded-full border-4 border-white shadow-2xl flex items-center justify-center active:scale-95 transition-transform"
+            aria-label="撮影"
           >
             <div className="w-16 h-16 bg-white rounded-full border-2 border-slate-200 flex items-center justify-center">
               <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full"></div>
@@ -1247,8 +1261,8 @@ export default function Home() {
                   <div className="relative flex-1 flex items-center justify-center py-4">
                     <img src={estimatePreview} className="w-full h-full max-h-64 object-contain rounded-lg" alt="見積書プレビュー" />
                     <button
-                      onClick={() => {
-                        trackButtonClick('見積書画像を削除');
+                      onClick={(e) => {
+                        trackButtonClick(e);
                         if (estimatePreview) URL.revokeObjectURL(estimatePreview);
                         setEstimateFile(null);
                         setEstimatePreview(null);
@@ -1271,8 +1285,8 @@ export default function Home() {
                     <p className="text-slate-400 text-xs md:text-sm mb-3 md:mb-4">見積書の画像</p>
                     <div className="flex gap-2 justify-center flex-wrap">
                       <button
-                        onClick={() => {
-                          trackButtonClick('見積書撮影');
+                        onClick={(e) => {
+                          trackButtonClick(e);
                           openCamera("estimate");
                         }}
                         className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all text-sm min-h-[44px] touch-manipulation"
@@ -1280,8 +1294,8 @@ export default function Home() {
                         <span>📷</span> 撮影
                       </button>
                       <button
-                        onClick={() => {
-                          trackButtonClick('見積書選択');
+                        onClick={(e) => {
+                          trackButtonClick(e);
                           estimateInputRef.current?.click();
                         }}
                         className="bg-slate-700 hover:bg-slate-600 text-white font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all text-sm min-h-[44px] touch-manipulation"
@@ -1314,8 +1328,8 @@ export default function Home() {
                   <div className="relative flex-1 flex items-center justify-center py-4">
                     <img src={planPreview} className="w-full h-full max-h-64 object-contain rounded-lg" alt="募集図面プレビュー" />
                     <button
-                      onClick={() => {
-                        trackButtonClick('図面画像を削除');
+                      onClick={(e) => {
+                        trackButtonClick(e);
                         if (planPreview) URL.revokeObjectURL(planPreview);
                         setPlanFile(null);
                         setPlanPreview(null);
@@ -1338,8 +1352,8 @@ export default function Home() {
                     <p className="text-slate-400 text-xs md:text-sm mb-3 md:mb-4">図面の画像</p>
                     <div className="flex gap-2 justify-center flex-wrap">
                       <button
-                        onClick={() => {
-                          trackButtonClick('図面撮影');
+                        onClick={(e) => {
+                          trackButtonClick(e);
                           openCamera("plan");
                         }}
                         className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all text-sm min-h-[44px] touch-manipulation"
@@ -1347,8 +1361,8 @@ export default function Home() {
                         <span>📷</span> 撮影
                       </button>
                       <button
-                        onClick={() => {
-                          trackButtonClick('図面選択');
+                        onClick={(e) => {
+                          trackButtonClick(e);
                           planInputRef.current?.click();
                         }}
                         className="bg-slate-700 hover:bg-slate-600 text-white font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all text-sm min-h-[44px] touch-manipulation"
@@ -1384,8 +1398,8 @@ export default function Home() {
           <div className="text-center mt-6">
             {!isLoading ? (
               <button
-                onClick={() => {
-                  trackButtonClick(!estimateFile ? '診断開始' : '適正価格を診断');
+                onClick={(e) => {
+                  trackButtonClick(e);
                   handleAnalyze();
                 }}
                 disabled={!estimateFile || isLoading}
@@ -1516,8 +1530,8 @@ export default function Home() {
                 <div className="mb-8 mt-8">
                 <div className="flex gap-2 md:gap-4 mb-4">
                   <button 
-                    onClick={() => {
-                      trackButtonClick('画像DL');
+                    onClick={(e) => {
+                      trackButtonClick(e);
                       handleDownloadImage();
                     }} 
                     className="flex-1 py-3 rounded-xl font-bold bg-slate-700 text-white text-sm hover:bg-slate-600 flex items-center justify-center gap-2 shadow-md"
@@ -1525,8 +1539,8 @@ export default function Home() {
                     <span>💾</span> 画像DL
                   </button>
                   <button 
-                    onClick={() => {
-                      trackButtonClick('共有用リンクコピー');
+                    onClick={(e) => {
+                      trackButtonClick(e);
                       handleCopyLink();
                     }} 
                     disabled={isCreatingShare}
@@ -1542,8 +1556,8 @@ export default function Home() {
                 <div className="relative z-10">
                   {/* LINE連携ボタン（CV） */}
                   <button 
-                    onClick={() => {
-                      trackButtonClick('LINEで続き');
+                    onClick={(e) => {
+                      trackButtonClick(e);
                       handleLineLink();
                     }} 
                     disabled={isCreatingLineLink}
@@ -1631,8 +1645,8 @@ export default function Home() {
               
               <div className="mt-4 text-center">
                 <button 
-                  onClick={() => {
-                    trackButtonClick('もう一度占う');
+                  onClick={(e) => {
+                    trackButtonClick(e);
                     handleReset();
                   }} 
                   className="text-purple-300 text-sm hover:text-purple-100 font-bold py-4 transition-colors"
@@ -1837,7 +1851,7 @@ export default function Home() {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    trackButtonClick('カメラで撮影（結果画面）');
+                    trackButtonClick(e);
                     openCamera("plan");
                   }}
                   className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-3 px-4 rounded-xl flex flex-col items-center justify-center gap-1.5 shadow-lg transition-all hover:scale-[1.02]"
@@ -1852,7 +1866,7 @@ export default function Home() {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    trackButtonClick('ファイル選択（結果画面）');
+                    trackButtonClick(e);
                     if (resultPlanInputRef.current) {
                       resultPlanInputRef.current.click();
                     }
@@ -1868,8 +1882,8 @@ export default function Home() {
 
           <div className="flex gap-2 md:gap-4 mb-8">
             <button 
-              onClick={() => {
-                trackButtonClick('画像DL（通常モード）');
+              onClick={(e) => {
+                trackButtonClick(e);
                 handleDownloadImage();
               }} 
               className="flex-1 py-3 rounded-xl font-bold bg-slate-700 text-white text-sm hover:bg-slate-600 flex items-center justify-center gap-2 shadow-md"
@@ -1877,8 +1891,8 @@ export default function Home() {
               <span>💾</span> 画像DL
             </button>
             <button 
-              onClick={() => {
-                trackButtonClick('共有用リンクコピー（通常モード）');
+              onClick={(e) => {
+                trackButtonClick(e);
                 handleCopyLink();
               }} 
               disabled={isCreatingShare}
@@ -1982,8 +1996,8 @@ export default function Home() {
              <div className="relative z-10">
                {/* LINE連携ボタン（CV） */}
                <button 
-                 onClick={() => {
-                   trackButtonClick('LINEで続き（通常モード）');
+                 onClick={(e) => {
+                   trackButtonClick(e);
                    handleLineLink();
                  }} 
                  disabled={isCreatingLineLink}
@@ -2070,8 +2084,8 @@ export default function Home() {
           </div>
 
           <button 
-            onClick={() => {
-              trackButtonClick('別の物件を診断する');
+            onClick={(e) => {
+              trackButtonClick(e);
               handleReset();
             }} 
             className="block w-full text-center text-slate-500 text-sm hover:text-blue-400 font-bold py-4 transition-colors"

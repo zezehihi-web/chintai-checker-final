@@ -14,8 +14,21 @@
 import { useEffect, useState } from 'react';
 
 // GA4イベント送信ヘルパー関数
-const trackButtonClick = (buttonLabel: string) => {
+const trackButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
   if (typeof window !== 'undefined' && window.gtag) {
+    const button = event.currentTarget;
+    
+    // 1. innerTextまたはtextContentからテキストを取得
+    let buttonLabel = button.innerText || button.textContent || '';
+    
+    // 2. 改行や余分な空白を削除（トリム）
+    buttonLabel = buttonLabel.trim().replace(/\s+/g, ' ');
+    
+    // 3. テキストがない場合はaria-label、それもなければidをフォールバック
+    if (!buttonLabel) {
+      buttonLabel = button.getAttribute('aria-label') || button.id || 'ボタン';
+    }
+    
     window.gtag('event', 'click_button', {
       event_category: 'engagement',
       event_label: buttonLabel,
@@ -303,8 +316,8 @@ export default function LiffLinkPage() {
             </p>
 
             <button
-              onClick={() => {
-                trackButtonClick('友だち追加する');
+              onClick={(e) => {
+                trackButtonClick(e);
                 window.liff.openWindow({
                   url: 'https://lin.ee/Hnl9hkO',
                   external: true

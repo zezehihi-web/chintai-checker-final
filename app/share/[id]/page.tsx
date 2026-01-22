@@ -3,8 +3,21 @@ import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 
 // GA4イベント送信ヘルパー関数
-const trackButtonClick = (buttonLabel: string) => {
+const trackButtonClick = (event: React.MouseEvent<HTMLButtonElement>) => {
   if (typeof window !== 'undefined' && window.gtag) {
+    const button = event.currentTarget;
+    
+    // 1. innerTextまたはtextContentからテキストを取得
+    let buttonLabel = button.innerText || button.textContent || '';
+    
+    // 2. 改行や余分な空白を削除（トリム）
+    buttonLabel = buttonLabel.trim().replace(/\s+/g, ' ');
+    
+    // 3. テキストがない場合はaria-label、それもなければidをフォールバック
+    if (!buttonLabel) {
+      buttonLabel = button.getAttribute('aria-label') || button.id || 'ボタン';
+    }
+    
     window.gtag('event', 'click_button', {
       event_category: 'engagement',
       event_label: buttonLabel,
@@ -467,8 +480,8 @@ export default function SharePage() {
           <h2 className="text-xl font-bold text-slate-900 mb-2">エラー</h2>
           <p className="text-slate-600 mb-6">{error || "データが見つかりませんでした"}</p>
           <button
-            onClick={() => {
-              trackButtonClick('トップに戻る（エラー画面）');
+            onClick={(e) => {
+              trackButtonClick(e);
               router.push("/");
             }}
             className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
@@ -639,8 +652,8 @@ export default function SharePage() {
               削減可能な項目を洗い出します
             </p>
             <button
-              onClick={() => {
-                trackButtonClick('今すぐ診断する（共有画面）');
+              onClick={(e) => {
+                trackButtonClick(e);
                 router.push("/");
               }}
               className="bg-white text-blue-600 font-black py-5 px-12 rounded-2xl text-lg shadow-2xl hover:scale-105 transition-all hover:shadow-white/50 relative overflow-hidden group"
@@ -653,8 +666,8 @@ export default function SharePage() {
 
         <div className="text-center">
           <button
-            onClick={() => {
-              trackButtonClick('トップに戻る（共有画面）');
+            onClick={(e) => {
+              trackButtonClick(e);
               router.push("/");
             }}
             className="text-slate-400 text-sm hover:text-blue-600 font-bold py-4 transition-colors"
