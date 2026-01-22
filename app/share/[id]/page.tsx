@@ -488,7 +488,7 @@ export default function SharePage() {
           {/* Header - 物件名なし */}
           <div className="border-b border-slate-100 pb-8 mb-8">
             <div className="max-w-md mx-auto">
-              <RiskGauge score={result.risk_score} />
+              <RiskGauge score={result.risk_score ?? 0} />
             </div>
           </div>
 
