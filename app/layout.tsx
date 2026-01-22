@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
-import { GoogleAnalytics } from '@next/third-parties/google'; // ★ここが追加
+import { GoogleAnalytics } from '@next/third-parties/google';
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -20,7 +20,6 @@ export default function RootLayout({
         {children}
         <SpeedInsights />
         <Analytics />
-        {/* ★以下の1行だけで設定完了です。IDは間違いなくこれでした */}
         <GoogleAnalytics gaId="G-GWQ33RP00C" /> 
       </body>
     </html>
