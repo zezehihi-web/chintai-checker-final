@@ -1046,16 +1046,27 @@ export default function Home() {
   };
 
   const handleCopyLink = async () => {
-    let url = getShareUrl();
-    if (!url) {
-      const id = await createShareLink();
-      if (id) url = typeof window !== 'undefined' ? `${window.location.origin}/share/${id}` : "";
-    }
-    if (url) {
-      // URLだけをコピー（テキストは含めない）
-      navigator.clipboard.writeText(url);
-      setIsCopied(true);
-      setTimeout(() => setIsCopied(false), 2000);
+    try {
+      let url = getShareUrl();
+      if (!url) {
+        const id = await createShareLink();
+        if (!id) {
+          alert("共有リンクの作成に失敗しました。もう一度お試しください。");
+          return;
+        }
+        url = typeof window !== 'undefined' ? `${window.location.origin}/share/${id}` : "";
+      }
+      if (url) {
+        // URLだけをコピー（テキストは含めない）
+        await navigator.clipboard.writeText(url);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+      } else {
+        alert("共有リンクの取得に失敗しました。もう一度お試しください。");
+      }
+    } catch (error) {
+      console.error("Copy link error:", error);
+      alert("共有リンクのコピーに失敗しました。もう一度お試しください。");
     }
   };
   

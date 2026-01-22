@@ -2,19 +2,253 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 
+// --- 占いスコアゲージコンポーネント ---
+const FortuneGauge = ({ score, category }: { score: number; category: string }) => {
+  const getGradient = () => {
+    if (score >= 90) return "from-yellow-400 via-amber-400 to-yellow-500";
+    if (score >= 80) return "from-purple-400 via-pink-400 to-purple-500";
+    return "from-blue-400 via-cyan-400 to-blue-500";
+  };
+
+  return (
+    <div className="w-full">
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-xs text-purple-200/80">{category}</span>
+        <span className="text-sm font-black text-white">{score}%</span>
+      </div>
+      <div className="h-2 bg-purple-900/50 rounded-full overflow-hidden">
+        <div 
+          className={`h-full w-full bg-gradient-to-r ${getGradient()} rounded-full transition-transform duration-1000 ease-out relative overflow-hidden`}
+          style={{ transform: `scaleX(${Math.max(0, Math.min(1, score / 100))})`, transformOrigin: "left" }}
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-shimmer"></div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- 占い結果UIコンポーネント ---
+const FortuneResult = ({ result }: { result: AnalysisResult }) => {
+  const getBackgroundTheme = () => {
+    switch (result.secret_type) {
+      case "face": return "from-purple-900 via-indigo-900 to-purple-900";
+      case "animal": return "from-emerald-900 via-teal-900 to-emerald-900";
+      case "food": return "from-orange-900 via-amber-900 to-orange-900";
+      default: return "from-blue-900 via-purple-900 to-blue-900";
+    }
+  };
+
+  const getTypeBadgeStyle = () => {
+    switch (result.secret_type) {
+      case "face": return "bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-400/50";
+      case "animal": return "bg-gradient-to-r from-emerald-500/30 to-teal-500/30 border-emerald-400/50";
+      case "food": return "bg-gradient-to-r from-amber-500/30 to-orange-500/30 border-amber-400/50";
+      default: return "bg-gradient-to-r from-blue-500/30 to-purple-500/30 border-blue-400/50";
+    }
+  };
+
+  const getMainIcon = () => {
+    switch (result.secret_type) {
+      case "face": return "🔮";
+      case "animal": return "🐾";
+      case "food": return "🍽️";
+      default: return "✨";
+    }
+  };
+
+  return (
+    <div className={`bg-gradient-to-br ${getBackgroundTheme()} rounded-3xl p-8 relative overflow-hidden shadow-2xl`}>
+      {/* 神秘的な背景エフェクト */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute top-10 left-10 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl animate-float"></div>
+        <div className="absolute bottom-20 right-10 w-40 h-40 bg-pink-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-blue-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
+        {/* 星のパターン */}
+        <div className="absolute inset-0 opacity-30" style={{
+          backgroundImage: `radial-gradient(circle at 20% 30%, rgba(255,255,255,0.3) 1px, transparent 1px),
+                           radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 1px, transparent 1px),
+                           radial-gradient(circle at 40% 70%, rgba(255,255,255,0.4) 1px, transparent 1px),
+                           radial-gradient(circle at 70% 60%, rgba(255,255,255,0.2) 1px, transparent 1px),
+                           radial-gradient(circle at 30% 90%, rgba(255,255,255,0.3) 1px, transparent 1px)`,
+          backgroundSize: '100px 100px'
+        }}></div>
+      </div>
+
+      <div className="relative z-10">
+        {/* ヘッダー */}
+        <div className="text-center mb-8 animate-fade-in-up">
+          <div className="text-6xl mb-4 animate-bounce-slow">{getMainIcon()}</div>
+          <h2 className="text-2xl md:text-3xl font-black text-white mb-2 tracking-wide">
+            {result.fortune_title || "特別鑑定結果"}
+          </h2>
+          <p className="text-purple-200/80 text-sm">
+            {result.fortune_subtitle || "あなただけの特別な診断"}
+          </p>
+        </div>
+
+        {/* タイプ表示 */}
+        {result.fortune_person_type && (
+          <div className="text-center mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+            <div className={`inline-block ${getTypeBadgeStyle()} backdrop-blur-sm border rounded-full px-6 py-3`}>
+              <p className="text-white font-bold text-lg">
+                「{result.fortune_person_type}」
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* 鑑定項目 */}
+        {result.fortune_items && (
+          <div className="space-y-4 mb-8">
+            {result.fortune_items.map((item, index) => (
+              <div 
+                key={index} 
+                className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20 animate-fade-in-up"
+                style={{ animationDelay: `${0.2 + index * 0.1}s` }}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="text-3xl flex-shrink-0">{item.icon}</div>
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-white font-bold text-lg">{item.category}</h3>
+                      <div className="flex items-center gap-1">
+                        <span className={`text-2xl font-black ${item.score >= 90 ? 'text-yellow-400' : item.score >= 80 ? 'text-pink-400' : 'text-blue-400'}`}>
+                          {item.score}
+                        </span>
+                        <span className="text-purple-200/60 text-sm">点</span>
+                      </div>
+                    </div>
+                    <FortuneGauge score={item.score} category={item.category} />
+                    <p className="text-purple-100/90 text-sm mt-3 leading-relaxed">
+                      {item.detail}
+                    </p>
+                    {item.lucky_item && (
+                      <div className="mt-3 flex items-center gap-2">
+                        <span className="text-yellow-400 text-xs">🍀 ラッキーアイテム:</span>
+                        <span className="text-yellow-200 text-xs font-bold">{item.lucky_item}</span>
+                      </div>
+                    )}
+                    {item.ideal_property && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-emerald-400 text-xs">🏠 理想の物件:</span>
+                        <span className="text-emerald-200 text-xs font-bold">{item.ideal_property}</span>
+                      </div>
+                    )}
+                    {item.lucky_direction && (
+                      <div className="mt-2 flex items-center gap-2">
+                        <span className="text-cyan-400 text-xs">🧭 吉方位:</span>
+                        <span className="text-cyan-200 text-xs font-bold">{item.lucky_direction}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* ラッキー情報 */}
+        <div className="grid grid-cols-3 gap-3 mb-8 animate-fade-in-up" style={{ animationDelay: '0.5s' }}>
+          {result.fortune_lucky_color && (
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20">
+              <p className="text-2xl mb-1">🎨</p>
+              <p className="text-purple-200/60 text-[10px] mb-1">ラッキーカラー</p>
+              <p className="text-white font-bold text-sm">{result.fortune_lucky_color}</p>
+            </div>
+          )}
+          {result.fortune_lucky_number && (
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20">
+              <p className="text-2xl mb-1">🔢</p>
+              <p className="text-purple-200/60 text-[10px] mb-1">ラッキーナンバー</p>
+              <p className="text-white font-bold text-sm">{result.fortune_lucky_number}</p>
+            </div>
+          )}
+          {result.fortune_power_spot && (
+            <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20">
+              <p className="text-2xl mb-1">⛩️</p>
+              <p className="text-purple-200/60 text-[10px] mb-1">パワースポット</p>
+              <p className="text-white font-bold text-sm">{result.fortune_power_spot}</p>
+            </div>
+          )}
+        </div>
+
+        {/* 行動指針 */}
+        {result.fortune_action_advice && result.fortune_action_advice.length > 0 && (
+          <div className="bg-gradient-to-r from-yellow-500/20 to-amber-500/20 backdrop-blur-sm rounded-2xl p-5 border border-yellow-400/30 mb-8 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
+            <h3 className="text-yellow-300 font-bold text-lg mb-4 flex items-center gap-2">
+              <span>📜</span> 今日からの行動指針
+            </h3>
+            <div className="space-y-3">
+              {result.fortune_action_advice.map((advice, index) => (
+                <div key={index} className="flex items-start gap-3">
+                  <div className="w-6 h-6 bg-yellow-400/30 rounded-full flex items-center justify-center flex-shrink-0">
+                    <span className="text-yellow-300 text-xs font-bold">{index + 1}</span>
+                  </div>
+                  <p className="text-yellow-100/90 text-sm leading-relaxed">{advice}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 総括 */}
+        {result.fortune_summary && (
+          <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/20 animate-fade-in-up" style={{ animationDelay: '0.7s' }}>
+            <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+              <span>🌟</span> 鑑定師からのメッセージ
+            </h3>
+            <p className="text-purple-100/90 text-sm leading-relaxed whitespace-pre-wrap">
+              {result.fortune_summary}
+            </p>
+          </div>
+        )}
+
+        {/* 注意書き */}
+        <div className="mt-8 text-center animate-fade-in-up" style={{ animationDelay: '0.8s' }}>
+          <p className="text-purple-300/60 text-xs mb-6">
+            ※今回の診断結果はあくまで画像から分かる範囲でのAI占い結果です。<br/>
+            エンタメとしてお楽しみください🔮✨
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 type AnalysisResult = {
-  items: {
+  items?: {
     name: string;
     price_original: number;
     price_fair: number;
     status: "fair" | "negotiable" | "cut";
     reason: string;
   }[];
-  total_original: number;
-  total_fair: number;
-  discount_amount: number;
-  pro_review: { content: string; };
-  risk_score: number;
+  total_original?: number;
+  total_fair?: number;
+  discount_amount?: number;
+  pro_review?: { content: string; };
+  risk_score?: number;
+  // 裏コマンド用
+  is_secret_mode?: boolean;
+  secret_type?: string;
+  fortune_title?: string;
+  fortune_subtitle?: string;
+  fortune_person_type?: string;
+  fortune_items?: {
+    category: string;
+    score: number;
+    icon: string;
+    detail: string;
+    lucky_item?: string;
+    lucky_direction?: string;
+    ideal_property?: string;
+  }[];
+  fortune_action_advice?: string[];
+  fortune_lucky_color?: string;
+  fortune_lucky_number?: string;
+  fortune_power_spot?: string;
+  fortune_summary?: string;
 };
 
 // --- 危険度ゲージコンポーネント（バー型） ---
@@ -244,7 +478,13 @@ export default function SharePage() {
       </header>
 
       <div className="max-w-3xl mx-auto p-6 md:p-10 animate-fade-in-up">
-        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-2xl relative overflow-hidden mb-8">
+        {/* 裏コマンドモード: 占い風UI */}
+        {result.is_secret_mode ? (
+          <div className="mb-8">
+            <FortuneResult result={result} />
+          </div>
+        ) : (
+          <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-2xl relative overflow-hidden mb-8">
           {/* Header - 物件名なし */}
           <div className="border-b border-slate-100 pb-8 mb-8">
             <div className="max-w-md mx-auto">
@@ -367,6 +607,7 @@ export default function SharePage() {
             );
           })()}
         </div>
+        )}
 
         {/* CTA Section - 拡散用 */}
         <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-3xl p-8 md:p-12 shadow-2xl relative overflow-hidden mb-8">

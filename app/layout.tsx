@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css"; // ★この1行がないと色がつきません！
 
 export const metadata: Metadata = {
@@ -13,7 +14,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className="font-sans antialiased bg-[#02060D]">{children}</body>
+      <body className="font-sans antialiased bg-[#02060D]">
+        {children}
+        <SpeedInsights />
+      </body>
     </html>
   );
 }

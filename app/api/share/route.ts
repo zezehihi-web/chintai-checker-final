@@ -20,7 +20,7 @@ export async function POST(req: Request) {
                     Math.random().toString(36).substring(2, 15);
 
     // 結果を保存（物件名などの個人情報を除外した共有用データ）
-    const shareData = {
+    const shareData: any = {
       items: result.items,
       total_original: result.total_original,
       total_fair: result.total_fair,
@@ -28,6 +28,21 @@ export async function POST(req: Request) {
       pro_review: result.pro_review,
       risk_score: result.risk_score,
     };
+
+    // 裏コマンドモードのデータも含める
+    if (result.is_secret_mode) {
+      shareData.is_secret_mode = result.is_secret_mode;
+      shareData.secret_type = result.secret_type;
+      shareData.fortune_title = result.fortune_title;
+      shareData.fortune_subtitle = result.fortune_subtitle;
+      shareData.fortune_person_type = result.fortune_person_type;
+      shareData.fortune_items = result.fortune_items;
+      shareData.fortune_action_advice = result.fortune_action_advice;
+      shareData.fortune_lucky_color = result.fortune_lucky_color;
+      shareData.fortune_lucky_number = result.fortune_lucky_number;
+      shareData.fortune_power_spot = result.fortune_power_spot;
+      shareData.fortune_summary = result.fortune_summary;
+    }
 
     shareStorage.set(shareId, {
       data: shareData,
