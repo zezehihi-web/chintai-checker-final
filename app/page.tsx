@@ -712,6 +712,11 @@ export default function Home() {
   const [secretType, setSecretType] = useState<string | null>(null);
 
   const handleAnalyze = async () => {
+    // 二重送信防止
+    if (isLoading) {
+      console.warn("診断処理が既に実行中です。二重送信を防止しました。");
+      return;
+    }
     if (!estimateFile) return;
     setIsLoading(true);
     setLoadingProgress(0);
@@ -857,7 +862,16 @@ export default function Home() {
       try {
         const classifyRes = await fetch("/api/classify", { method: "POST", body: classifyFormData });
         if (classifyRes.ok) {
-          const classifyData = await classifyRes.json();
+          // Response bodyを一度だけ読み込む
+          const classifyBodyText = await classifyRes.text();
+          let classifyData;
+          try {
+            classifyData = JSON.parse(classifyBodyText);
+          } catch (parseError) {
+            console.error("分類レスポンスのパースに失敗:", parseError);
+            console.error("レスポンス本文:", classifyBodyText.substring(0, 500));
+            classifyData = {};
+          }
           console.log("画像分類結果:", classifyData);
           
           if (classifyData.isSecretMode) {
@@ -877,15 +891,17 @@ export default function Home() {
         ok: res.ok
       });
       
+      // Response bodyを一度だけ読み込む（二重読み込み防止）
+      const responseBodyText = await res.text();
+      
       if (!res.ok) {
          let errorData: Record<string, string> = {};
          try {
-           errorData = await res.json();
+           errorData = JSON.parse(responseBodyText);
            console.error("❌ APIエラーレスポンス:", errorData);
          } catch (parseError) {
            console.error("❌ エラーレスポンスのパースに失敗:", parseError);
-           const errorText = await res.text();
-           console.error("❌ レスポンス本文:", errorText.substring(0, 500));
+           console.error("❌ レスポンス本文:", responseBodyText.substring(0, 500));
            errorData = { error: `サーバーエラー（ステータス: ${res.status}）` };
          }
          
@@ -902,7 +918,16 @@ export default function Home() {
          const errorMsg = errorData.error || errorData.details || "システムエラーが発生しました";
          throw new Error(errorMsg);
       }
-      const data = await res.json();
+      
+      // 成功時も同じbodyテキストを使用
+      let data;
+      try {
+        data = JSON.parse(responseBodyText);
+      } catch (parseError) {
+        console.error("❌ レスポンスのパースに失敗:", parseError);
+        console.error("レスポンス本文:", responseBodyText.substring(0, 500));
+        throw new Error("解析結果の形式が正しくありません");
+      }
       if (!data.result) {
         throw new Error("解析結果の形式が正しくありません");
       }
@@ -1316,9 +1341,9 @@ export default function Home() {
             {!isLoading ? (
               <button
                 onClick={handleAnalyze}
-                disabled={!estimateFile}
+                disabled={!estimateFile || isLoading}
                 className={`w-full md:w-auto px-8 md:px-16 py-5 md:py-6 rounded-xl font-bold shadow-xl transition-all ${
-                  !estimateFile 
+                  !estimateFile || isLoading
                     ? "bg-slate-700 text-slate-500 cursor-not-allowed shadow-none" 
                     : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/30"
                 }`}
