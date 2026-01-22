@@ -1177,11 +1177,7 @@ export default function Home() {
       const { caseId, caseToken } = await res.json();
 
       // 2. LIFF URLへ遷移（diag_idとcaseTokenを含める）
-      const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-      if (!liffId || liffId === 'your-liff-id-here') {
-        alert('LIFF IDが設定されていません。管理者にお問い合わせください。');
-        return;
-      }
+      const liffId = '2008901046-GM21GYm9';
 
       // diag_id（caseId）とcaseTokenの両方を含める
       const liffUrl = `https://liff.line.me/${liffId}?state=${caseToken}&diag_id=${caseId}`;

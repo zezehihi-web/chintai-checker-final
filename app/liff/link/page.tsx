@@ -169,12 +169,8 @@ export default function LiffLinkPage() {
     async function initLiff() {
       try {
         // 1. LIFF初期化
-        const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
+        const liffId = '2008901046-GM21GYm9';
         console.log('LIFF ID:', liffId);
-        
-        if (!liffId || liffId === 'your-liff-id-here') {
-          throw new Error('LIFF IDが設定されていません');
-        }
 
         console.log('Initializing LIFF with ID:', liffId);
         try {
