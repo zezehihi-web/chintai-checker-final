@@ -13,6 +13,16 @@
 
 import { useEffect, useState } from 'react';
 
+// GA4イベント送信ヘルパー関数
+const trackButtonClick = (buttonLabel: string) => {
+  if (typeof window !== 'undefined' && window.gtag) {
+    window.gtag('event', 'click_button', {
+      event_category: 'engagement',
+      event_label: buttonLabel,
+    });
+  }
+};
+
 // LIFF型定義（簡易版）
 declare global {
   interface Window {
@@ -294,6 +304,7 @@ export default function LiffLinkPage() {
 
             <button
               onClick={() => {
+                trackButtonClick('友だち追加する');
                 window.liff.openWindow({
                   url: 'https://lin.ee/Hnl9hkO',
                   external: true

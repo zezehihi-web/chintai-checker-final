@@ -8,6 +8,25 @@
  */
 
 // ====================================
+// Google Analytics (GA4) 型定義
+// ====================================
+
+declare global {
+  interface Window {
+    gtag?: (
+      command: 'config' | 'event' | 'js' | 'set',
+      targetId: string | Date,
+      config?: {
+        event_category?: string;
+        event_label?: string;
+        [key: string]: unknown;
+      }
+    ) => void;
+    dataLayer?: unknown[];
+  }
+}
+
+// ====================================
 // 抽出フェーズ用の型定義
 // ====================================
 

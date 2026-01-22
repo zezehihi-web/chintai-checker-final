@@ -2,6 +2,16 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 
+// GA4イベント送信ヘルパー関数
+const trackButtonClick = (buttonLabel: string) => {
+  if (typeof window !== 'undefined' && window.gtag) {
+    window.gtag('event', 'click_button', {
+      event_category: 'engagement',
+      event_label: buttonLabel,
+    });
+  }
+};
+
 // --- 占いスコアゲージコンポーネント ---
 const FortuneGauge = ({ score, category }: { score: number; category: string }) => {
   const getGradient = () => {
@@ -457,7 +467,10 @@ export default function SharePage() {
           <h2 className="text-xl font-bold text-slate-900 mb-2">エラー</h2>
           <p className="text-slate-600 mb-6">{error || "データが見つかりませんでした"}</p>
           <button
-            onClick={() => router.push("/")}
+            onClick={() => {
+              trackButtonClick('トップに戻る（エラー画面）');
+              router.push("/");
+            }}
             className="bg-blue-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-blue-700 transition-colors"
           >
             トップに戻る
@@ -626,7 +639,10 @@ export default function SharePage() {
               削減可能な項目を洗い出します
             </p>
             <button
-              onClick={() => router.push("/")}
+              onClick={() => {
+                trackButtonClick('今すぐ診断する（共有画面）');
+                router.push("/");
+              }}
               className="bg-white text-blue-600 font-black py-5 px-12 rounded-2xl text-lg shadow-2xl hover:scale-105 transition-all hover:shadow-white/50 relative overflow-hidden group"
             >
               <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
@@ -637,7 +653,10 @@ export default function SharePage() {
 
         <div className="text-center">
           <button
-            onClick={() => router.push("/")}
+            onClick={() => {
+              trackButtonClick('トップに戻る（共有画面）');
+              router.push("/");
+            }}
             className="text-slate-400 text-sm hover:text-blue-600 font-bold py-4 transition-colors"
           >
             ← トップに戻る
