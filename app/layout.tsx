@@ -1,3 +1,4 @@
+import Script from 'next/script'
 import type { Metadata } from "next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
@@ -19,6 +20,19 @@ export default function RootLayout({
         {children}
         <SpeedInsights />
         <Analytics />
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-GWQ33RP00C"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+
+            gtag('config', 'G-GWQ33RP00C');
+          `}
+        </Script>
       </body>
     </html>
   );
