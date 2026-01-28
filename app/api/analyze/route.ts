@@ -4,10 +4,21 @@
  * シンプル版 + 裏コマンド機能:
  * - 見積書/図面の場合 → 通常の診断
  * - 関係ない画像の場合 → 特別な診断（占い/褒め倒し）
+ * 
+ * 【重要】このAPIはGemini APIに画像を送信する前に、
+ * 厳密なバリデーションを行い、ByteStringエラーを防止します。
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { NextResponse } from "next/server";
+import {
+  createImagePart,
+  buildGeminiContent,
+  debugGeminiContent,
+  containsNonAscii,
+  GeminiImagePart,
+  GeminiContentPart,
+} from "@/lib/gemini-utils";
 
 export const maxDuration = 60;
 
@@ -22,6 +33,79 @@ if (!GEMINI_API_KEY) {
 
 const genAI = new GoogleGenerativeAI(GEMINI_API_KEY || "");
 
+/**
+ * 【ガード関数】Gemini APIを呼び出す前の最終チェック
+ * 不正なデータを検出した場合は400エラーを返す
+ */
+function validateContentBeforeApiCall(content: GeminiContentPart[]): { valid: boolean; error?: string } {
+  for (let i = 0; i < content.length; i++) {
+    const part = content[i];
+    
+    // 【最重要】パーツがオブジェクト形式であることを確認
+    if (!part || typeof part !== "object" || Array.isArray(part)) {
+      return { 
+        valid: false, 
+        error: `パーツ[${i}]: オブジェクト形式ではありません（型: ${typeof part}, Array: ${Array.isArray(part)}）` 
+      };
+    }
+    
+    if ("inlineData" in part) {
+      // 画像パーツの検証
+      const data = part.inlineData.data;
+      
+      // 型チェック
+      if (typeof data !== "string") {
+        return { 
+          valid: false, 
+          error: `パーツ[${i}]: dataが文字列ではありません（型: ${typeof data}）` 
+        };
+      }
+      
+      // 空チェック
+      if (data.length === 0) {
+        return { 
+          valid: false, 
+          error: `パーツ[${i}]: dataが空です` 
+        };
+      }
+      
+      // 非ASCIIチェック（最重要）
+      if (containsNonAscii(data)) {
+        const firstNonAsciiIndex = data.split("").findIndex((char) => char.charCodeAt(0) > 127);
+        const charCode = data.charCodeAt(firstNonAsciiIndex);
+        const char = data.charAt(firstNonAsciiIndex);
+        return { 
+          valid: false, 
+          error: `パーツ[${i}]: Base64データに非ASCII文字を検出。位置=${firstNonAsciiIndex}, コード=${charCode}, 文字="${char}"。プロンプトテキストが画像データに混入しています。` 
+        };
+      }
+    } else if ("text" in part) {
+      // 【最重要】テキストパーツが { text: string } 形式であることを確認
+      if (typeof part.text !== "string") {
+        return { 
+          valid: false, 
+          error: `パーツ[${i}]: textが文字列ではありません（型: ${typeof part.text}）` 
+        };
+      }
+      
+      // 生の文字列でないことを確認（undiciの_Headers.appendエラーを防ぐ）
+      if (part.constructor === String || typeof part === "string") {
+        return { 
+          valid: false, 
+          error: `パーツ[${i}]: 生の文字列です。必ず { text: string } オブジェクト形式にしてください` 
+        };
+      }
+    } else {
+      return { 
+        valid: false, 
+        error: `パーツ[${i}]: 無効な形式です（inlineDataもtextもありません）` 
+      };
+    }
+  }
+  
+  return { valid: true };
+}
+
 export async function POST(req: Request) {
   try {
     // APIキーの再確認（リクエスト時）
@@ -32,6 +116,7 @@ export async function POST(req: Request) {
         details: "サーバー管理者にお問い合わせください。GEMINI_API_KEY が環境変数に設定されているか確認してください。" 
       }, { status: 500 });
     }
+
     const formData = await req.formData();
     const estimateFile = formData.get("estimate") as File | null;
     const planFile = formData.get("plan") as File | null;
@@ -45,11 +130,9 @@ export async function POST(req: Request) {
     if (estimateFile.size > 20 * 1024 * 1024) {
       return NextResponse.json({ error: "見積書の画像サイズが大きすぎます（20MB以下にしてください）" }, { status: 400 });
     }
-
     if (planFile && planFile.size > 20 * 1024 * 1024) {
       return NextResponse.json({ error: "募集図面の画像サイズが大きすぎます（20MB以下にしてください）" }, { status: 400 });
     }
-
     if (conditionFile && conditionFile.size > 20 * 1024 * 1024) {
       return NextResponse.json({ error: "条件欄の画像サイズが大きすぎます（20MB以下にしてください）" }, { status: 400 });
     }
@@ -58,33 +141,11 @@ export async function POST(req: Request) {
     if (!estimateFile.type.startsWith('image/')) {
       return NextResponse.json({ error: "見積書は画像ファイルである必要があります" }, { status: 400 });
     }
-
     if (planFile && !planFile.type.startsWith('image/')) {
       return NextResponse.json({ error: "募集図面は画像ファイルである必要があります" }, { status: 400 });
     }
-
     if (conditionFile && !conditionFile.type.startsWith('image/')) {
       return NextResponse.json({ error: "条件欄は画像ファイルである必要があります" }, { status: 400 });
-    }
-
-    const parts: any[] = [];
-    const estimateBuffer = Buffer.from(await estimateFile.arrayBuffer());
-    parts.push({
-      inlineData: { mimeType: estimateFile.type, data: estimateBuffer.toString("base64") },
-    });
-
-    if (planFile) {
-      const planBuffer = Buffer.from(await planFile.arrayBuffer());
-      parts.push({
-        inlineData: { mimeType: planFile.type, data: planBuffer.toString("base64") },
-      });
-    }
-
-    if (conditionFile) {
-      const conditionBuffer = Buffer.from(await conditionFile.arrayBuffer());
-      parts.push({
-        inlineData: { mimeType: conditionFile.type, data: conditionBuffer.toString("base64") },
-      });
     }
 
     const primaryModel = process.env.GEMINI_MODEL_NAME || "gemini-2.5-pro";
@@ -95,7 +156,58 @@ export async function POST(req: Request) {
     console.log("  - 見積書ファイル:", estimateFile ? `✅ ${estimateFile.name} (${estimateFile.size} bytes)` : "❌ なし");
     console.log("  - 図面ファイル:", planFile ? `✅ ${planFile.name} (${planFile.size} bytes)` : "なし");
     console.log("  - 条件欄ファイル:", conditionFile ? `✅ ${conditionFile.name} (${conditionFile.size} bytes)` : "なし");
+
+    // 【重要】画像パーツを安全に作成
+    // この段階で厳密なバリデーションが行われる
+    const imageParts: GeminiImagePart[] = [];
     
+    // 見積書画像パーツ作成
+    let estimateImagePart: GeminiImagePart;
+    try {
+      estimateImagePart = await createImagePart(estimateFile);
+      imageParts.push(estimateImagePart);
+      console.log("✅ 見積書画像パーツ作成成功:", {
+        mimeType: estimateImagePart.inlineData.mimeType,
+        dataLength: estimateImagePart.inlineData.data.length,
+      });
+    } catch (imageError: any) {
+      console.error("❌ 見積書画像パーツ作成失敗:", imageError.message);
+      return NextResponse.json({ 
+        error: "見積書画像の処理に失敗しました", 
+        details: imageError.message 
+      }, { status: 400 });
+    }
+
+    // 図面画像パーツ作成（オプション）
+    if (planFile) {
+      try {
+        const planImagePart = await createImagePart(planFile);
+        imageParts.push(planImagePart);
+        console.log("✅ 図面画像パーツ作成成功:", {
+          mimeType: planImagePart.inlineData.mimeType,
+          dataLength: planImagePart.inlineData.data.length,
+        });
+      } catch (imageError: any) {
+        console.error("⚠️ 図面画像パーツ作成失敗（スキップ）:", imageError.message);
+        // 図面はオプションなので、失敗しても続行
+      }
+    }
+
+    // 条件欄画像パーツ作成（オプション）
+    if (conditionFile) {
+      try {
+        const conditionImagePart = await createImagePart(conditionFile);
+        imageParts.push(conditionImagePart);
+        console.log("✅ 条件欄画像パーツ作成成功:", {
+          mimeType: conditionImagePart.inlineData.mimeType,
+          dataLength: conditionImagePart.inlineData.data.length,
+        });
+      } catch (imageError: any) {
+        console.error("⚠️ 条件欄画像パーツ作成失敗（スキップ）:", imageError.message);
+        // 条件欄もオプションなので、失敗しても続行
+      }
+    }
+
     // ========================================
     // 【第1段階】画像の種類を判定
     // ========================================
@@ -118,7 +230,44 @@ JSON形式で出力してください:
 }
 `;
 
-    const classificationParts = [parts[0], { text: classificationPrompt }];
+    // 分類用コンテンツを構築（見積書画像のみ使用）
+    let classificationContent: GeminiContentPart[];
+    try {
+      classificationContent = buildGeminiContent([estimateImagePart], classificationPrompt);
+      console.log("✅ 分類用コンテンツ構築成功");
+      debugGeminiContent(classificationContent);
+    } catch (buildError: any) {
+      console.error("❌ 分類用コンテンツ構築失敗:", buildError.message);
+      return NextResponse.json({ 
+        error: "リクエストの構築に失敗しました", 
+        details: buildError.message 
+      }, { status: 500 });
+    }
+
+    // 【ガード】API呼び出し前の最終チェック
+    const classificationValidation = validateContentBeforeApiCall(classificationContent);
+    if (!classificationValidation.valid) {
+      console.error("❌ 分類コンテンツ検証失敗:", classificationValidation.error);
+      return NextResponse.json({ 
+        error: "画像データが不正です", 
+        details: classificationValidation.error 
+      }, { status: 400 });
+    }
+    
+    // 【追加検証】テキストパーツが正しい形式であることを確認
+    for (let i = 0; i < classificationContent.length; i++) {
+      const part = classificationContent[i];
+      if ("text" in part) {
+        if (typeof part !== "object" || Array.isArray(part) || typeof part.text !== "string") {
+          console.error(`❌ 致命的エラー: 分類コンテンツのパーツ[${i}]（テキスト）が正しい形式ではありません`);
+          return NextResponse.json({ 
+            error: "リクエストの形式が不正です", 
+            details: `テキストパーツ[${i}]が { text: string } 形式ではありません` 
+          }, { status: 400 });
+        }
+        console.log(`✅ 分類コンテンツ パーツ[${i}]（テキスト）検証OK: { text: "${part.text.substring(0, 30)}..." }`);
+      }
+    }
     
     const model = genAI.getGenerativeModel({ 
       model: primaryModel, 
@@ -131,7 +280,15 @@ JSON形式で出力してください:
     console.log("🔍 画像分類開始... モデル:", primaryModel);
     let classification;
     try {
-      const classificationResult = await model.generateContent(classificationParts);
+      // 【重要】generateContentにはパーツ配列を直接渡す（SDKの正しい使い方）
+      // 各パーツは必ず { inlineData: {...} } または { text: string } のオブジェクト形式である必要がある
+      console.log("📤 generateContent呼び出し前の最終確認（分類）:");
+      console.log(`  - パーツ数: ${classificationContent.length}`);
+      classificationContent.forEach((part, idx) => {
+        console.log(`  - パーツ[${idx}]: ${"inlineData" in part ? "画像" : "text" in part ? "テキスト" : "不明"}, 型: ${typeof part}`);
+      });
+      
+      const classificationResult = await model.generateContent(classificationContent);
       const classificationText = classificationResult.response.text();
       console.log("✅ 分類API応答受信（最初の500文字）:", classificationText.substring(0, 500));
       const cleanedClassification = classificationText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
@@ -142,6 +299,12 @@ JSON形式で出力してください:
       console.error("エラータイプ:", classificationError?.constructor?.name || typeof classificationError);
       console.error("エラーメッセージ:", classificationError?.message || "メッセージなし");
       console.error("エラースタック:", classificationError?.stack || "スタックなし");
+      
+      // ByteStringエラーの場合は詳細な情報を出力
+      if (classificationError?.message?.includes("ByteString")) {
+        console.error("⚠️ ByteStringエラーが発生しました - 画像データに無効な文字が含まれています");
+        debugGeminiContent(classificationContent);
+      }
       
       // APIキー関連のエラーをチェック
       if (classificationError?.message?.includes("API_KEY") || 
@@ -464,7 +627,45 @@ JSON形式で出力:
 `;
       }
 
-      const secretParts = [parts[0], { text: secretPrompt }];
+      // 裏コマンドモード用のコンテンツを構築
+      let secretContent: GeminiContentPart[];
+      try {
+        secretContent = buildGeminiContent([estimateImagePart], secretPrompt);
+        console.log("✅ 裏コマンド用コンテンツ構築成功");
+        debugGeminiContent(secretContent);
+      } catch (buildError: any) {
+        console.error("❌ 裏コマンド用コンテンツ構築失敗:", buildError.message);
+        return NextResponse.json({ 
+          error: "リクエストの構築に失敗しました", 
+          details: buildError.message 
+        }, { status: 500 });
+      }
+
+      // 【ガード】API呼び出し前の最終チェック
+      const secretValidation = validateContentBeforeApiCall(secretContent);
+      if (!secretValidation.valid) {
+        console.error("❌ 裏コマンドコンテンツ検証失敗:", secretValidation.error);
+        return NextResponse.json({ 
+          error: "画像データが不正です", 
+          details: secretValidation.error 
+        }, { status: 400 });
+      }
+
+      // 【追加検証】テキストパーツが正しい形式であることを確認
+      for (let i = 0; i < secretContent.length; i++) {
+        const part = secretContent[i];
+        if ("text" in part) {
+          if (typeof part !== "object" || Array.isArray(part) || typeof part.text !== "string") {
+            console.error(`❌ 致命的エラー: 裏コマンドコンテンツのパーツ[${i}]（テキスト）が正しい形式ではありません`);
+            return NextResponse.json({ 
+              error: "リクエストの形式が不正です", 
+              details: `テキストパーツ[${i}]が { text: string } 形式ではありません` 
+            }, { status: 400 });
+          }
+          console.log(`✅ 裏コマンドコンテンツ パーツ[${i}]（テキスト）検証OK: { text: "${part.text.substring(0, 30)}..." }`);
+        }
+      }
+
       const secretModel = genAI.getGenerativeModel({ 
         model: primaryModel, 
         generationConfig: { 
@@ -475,7 +676,15 @@ JSON形式で出力:
       
       try {
         console.log("🔮 裏コマンド診断開始... タイプ:", classification.type);
-        const secretResult = await secretModel.generateContent(secretParts);
+        // 【重要】generateContentにはパーツ配列を直接渡す（SDKの正しい使い方）
+        // 各パーツは必ず { inlineData: {...} } または { text: string } のオブジェクト形式である必要がある
+        console.log("📤 generateContent呼び出し前の最終確認（裏コマンド）:");
+        console.log(`  - パーツ数: ${secretContent.length}`);
+        secretContent.forEach((part, idx) => {
+          console.log(`  - パーツ[${idx}]: ${"inlineData" in part ? "画像" : "text" in part ? "テキスト" : "不明"}, 型: ${typeof part}`);
+        });
+        
+        const secretResult = await secretModel.generateContent(secretContent);
         const secretText = secretResult.response.text();
         console.log("✅ 裏コマンドAI応答受信（最初の500文字）:", secretText.substring(0, 500));
         
@@ -495,6 +704,12 @@ JSON形式で出力:
         console.error("エラータイプ:", secretError?.constructor?.name || typeof secretError);
         console.error("エラーメッセージ:", secretError?.message || "メッセージなし");
         console.error("エラースタック:", secretError?.stack || "スタックなし");
+        
+        // ByteStringエラーの場合は詳細な情報を出力
+        if (secretError?.message?.includes("ByteString")) {
+          console.error("⚠️ ByteStringエラーが発生しました - 画像データに無効な文字が含まれています");
+          debugGeminiContent(secretContent);
+        }
         
         // APIキー関連のエラーをチェック
         if (secretError?.message?.includes("API_KEY") || 
@@ -529,7 +744,8 @@ JSON形式で出力:
 ## 【禁止事項・制約】
 - **絶対に使用禁止のワード**: 「AD」「広告料」「バックマージン」「キックバック」などの業界裏事情用語は一切使わないこと
 - **過度な期待を持たせる表現の禁止**: 「仲介手数料が0円になる」といった保証できない内容は書かないこと
-- **仲介手数料が賃料の0.5ヶ月分（税別）以下の場合**: 絶対に「削減可能」や「交渉可能」に分類しない。必ず「fair（適正）」とすること
+- **仲介手数料が賃料の0.5ヶ月分（税別）以下の場合**: 「fair（適正）」とすること
+- **削減可能額の最大化**: 削減できる可能性がある項目は、必ず「cut」または「negotiable」として判定し、削減可能額に計上してください。「fair」は本当に削減の余地がない場合のみ使用してください
 
 ---
 
@@ -546,44 +762,60 @@ JSON形式で出力:
 以下の優先順位に従って、機械的に判定を行ってください。
 
 ### 優先順位1：【仲介手数料の厳格判定】
+**重要**: 仲介手数料は原則として賃料の0.5ヶ月分（税別）＝0.55ヶ月分（税込）が適正です。これを超える場合は必ず削減可能として判定してください。
+
 | 条件 | 判定 (status) | 適正価格 (price_fair) | 理由 (reason) |
 | :--- | :--- | :--- | :--- |
-| **賃料の1.1ヶ月分（税込）の場合** | **negotiable** | 賃料の0.55ヶ月分（税込） | "原則は賃料の0.5ヶ月分（税別）＝0.55ヶ月分（税込）です。交渉により減額できる可能性があります。" |
+| **賃料の1ヶ月分（税込）以上の場合** | **negotiable** | 賃料の0.55ヶ月分（税込） | "原則は賃料の0.5ヶ月分（税別）＝0.55ヶ月分（税込）です。1ヶ月分以上の場合、交渉により0.55ヶ月分まで減額できる可能性が高いです。" |
+| **賃料の0.6ヶ月分（税込）以上、1ヶ月分未満の場合** | **negotiable** | 賃料の0.55ヶ月分（税込） | "0.5ヶ月分（税別）を超えているため、交渉により0.55ヶ月分まで減額できる可能性があります。" |
 | **賃料の0.55ヶ月分（税込）以下の場合** | **fair** | そのまま | "適正な金額です。" |
 | **火災保険が2万円超の場合** | **negotiable** | 15,000〜20,000 | "相場より割高です。自分で安い保険（借家人賠償責任保険）に加入できる可能性があります。" |
 
-### 優先順位2：【要確認項目】（Warning）
-**対象キーワード**: 害虫駆除, 室内消毒, 消臭抗菌, 24時間サポート, 安心サポート, 緊急サポート, 事務手数料, 書類作成費
+### 優先順位2：【付帯費用の厳格判定】
+**対象キーワード**: 害虫駆除, 室内消毒, 消臭抗菌, 24時間サポート, 安心サポート, 緊急サポート, 事務手数料, 書類作成費, 入居者安心サポート, 24時間ライフサポート
+
+**重要原則**: これらの付帯費用は原則として「不要（0円にできる）」と判定してください。削減可能額にしっかり計上することが重要です。
 
 **重要**: 鍵交換費用は含めないこと（鍵交換は通常必須のため）
 
 1. **図面がアップロードされていない場合 OR 図面に該当項目の記載が確認できない場合**
-   - 判定: **warning**
+   - 判定: **cut** （削減可能額に計上）
    - 適正価格: 0円
-   - 理由: "一般的には任意のオプションサービスですが、貸主や管理会社が必須条件としている可能性もあります。**募集図面との照合や、管理会社への確認が必要です。**"
+   - 理由: "一般的には任意のオプションサービスです。不要であれば外せます。交渉により削減できます。"
 
 2. **図面に記載があり「任意」「オプション」と明記されている場合**
-   - 判定: **cut**
+   - 判定: **cut** （削減可能額に計上）
    - 適正価格: 0円
    - 理由: "任意のオプションサービスです。不要であれば外せます。"
 
 3. **図面に記載があり「必須」と明記されている場合**
-   - 判定: **negotiable**
+   - 判定: **negotiable** （削減可能額に計上）
    - 適正価格: 0円
-   - 理由: "図面に記載がありますが、交渉次第で外せる可能性があります。"
+   - 理由: "図面に記載がありますが、交渉次第で外せる可能性が高いです。削減を試みる価値があります。"
 
-### 優先順位3：【削減可能項目】（Cut/Negotiable）
-上記の要確認項目で、図面に明確に記載がなく、かつ一般的に不要と判断できる項目
+4. **図面に記載がなく、かつ一般的に不要と判断できる項目**
+   - 判定: **cut** （削減可能額に計上）
+   - 適正価格: 0円
+   - 理由: "一般的には不要なオプションサービスです。交渉により削減できます。"
+
+### 優先順位3：【要確認項目】（Warning）※削減可能額に含まれない
+**重要**: このカテゴリは極力使わないでください。削減可能額に計上されないため、可能な限り「cut」または「negotiable」として判定してください。
+
+**例外ケース**: 図面に明確に「必須」と記載があり、かつ削減が困難と判断される場合のみ「warning」を使用してください。
 
 ### 優先順位4：【ホワイトリスト項目】（適正）
 対象: **敷金, 礼金, 賃料, 前家賃, 共益費/管理費, 更新料, 保証会社利用料, 鍵交換代, 町内会費, 口座振替手数料, クリーニング費**
+
+**重要**: これらの項目は基本的に適正ですが、削減可能な余地がある場合は必ず「negotiable」として判定し、削減可能額に計上してください。
 
 1. **基本ルール**
    - 見積書に記載があれば、**図面から読み取れなくても "fair"** と判定する
    - 理由: "物件固有の条件であり、適正な費用です。"
 
-2. **例外（Cutにするケース）**
+2. **例外（Cut/Negotiableにするケース）**
    - 図面に明確に**「礼金0円」「礼金なし」「鍵交換代無」**という文字が読み取れた場合に限り、**cut** とする
+   - 更新料が高額（賃料の1ヶ月分以上）の場合、**negotiable** として判定し、適正価格を設定する
+   - 保証会社利用料が相場（3,000〜5,000円）を大幅に超える場合、**negotiable** として判定する
 
 ---
 
@@ -591,7 +823,21 @@ JSON形式で出力:
 
 Markdown記法は含めず、純粋なJSON文字列だけを返してください。
 
-**重要**: "warning" 項目の金額は、discount_amountやtotal_fairの計算に含めないこと。
+## 【最重要】判定の厳格化ルール
+
+**削減可能額を最大化するために、以下のルールを厳格に守ってください：**
+
+1. **「fair（適正）」は最小限に**: 本当に削減の余地がない場合のみ「fair」と判定してください。少しでも削減できる可能性がある場合は「negotiable」または「cut」として判定し、削減可能額に計上してください。
+
+2. **付帯費用は原則「cut」**: 「安心サポート」「除菌消臭」「書類作成費」「事務手数料」などの付帯費用は、図面に「必須」と明記されていない限り、原則として「cut（0円）」として判定してください。
+
+3. **仲介手数料の厳格判定**: 賃料の1ヶ月分（税込）以上の場合、必ず「negotiable」として判定し、適正価格を「賃料の0.55ヶ月分（税込）」に設定してください。
+
+4. **「warning」は極力使わない**: 「warning」は削減可能額に含まれません。削減の余地がある場合は必ず「cut」または「negotiable」として判定してください。
+
+5. **削減可能額の算出**: 各項目の price_original から price_fair を引いた値を正確に計算し、discount_amount に反映してください。status が「cut」または「negotiable」の項目は必ず削減可能額に含めてください。
+
+**重要**: "warning" 項目の金額は、discount_amountやtotal_fairの計算に含めないこと。ただし、可能な限り「warning」を使わず、「cut」または「negotiable」として判定してください。
 
 {
   "property_name": "物件名（不明なら'物件名入力なし'）",
@@ -618,13 +864,58 @@ Markdown記法は含めず、純粋なJSON文字列だけを返してくださ�
 }
 `;
 
-    parts.push({ text: prompt });
+    // 通常診断用のコンテンツを構築
+    let mainContent: GeminiContentPart[];
+    try {
+      mainContent = buildGeminiContent(imageParts, prompt);
+      console.log("✅ 通常診断用コンテンツ構築成功");
+      debugGeminiContent(mainContent);
+    } catch (buildError: any) {
+      console.error("❌ 通常診断用コンテンツ構築失敗:", buildError.message);
+      return NextResponse.json({ 
+        error: "リクエストの構築に失敗しました", 
+        details: buildError.message 
+      }, { status: 500 });
+    }
+
+    // 【ガード】API呼び出し前の最終チェック
+    const mainValidation = validateContentBeforeApiCall(mainContent);
+    if (!mainValidation.valid) {
+      console.error("❌ 通常診断コンテンツ検証失敗:", mainValidation.error);
+      return NextResponse.json({ 
+        error: "画像データが不正です", 
+        details: mainValidation.error 
+      }, { status: 400 });
+    }
+    
+    // 【追加検証】テキストパーツが正しい形式であることを確認
+    for (let i = 0; i < mainContent.length; i++) {
+      const part = mainContent[i];
+      if ("text" in part) {
+        if (typeof part !== "object" || Array.isArray(part) || typeof part.text !== "string") {
+          console.error(`❌ 致命的エラー: 通常診断コンテンツのパーツ[${i}]（テキスト）が正しい形式ではありません`);
+          return NextResponse.json({ 
+            error: "リクエストの形式が不正です", 
+            details: `テキストパーツ[${i}]が { text: string } 形式ではありません` 
+          }, { status: 400 });
+        }
+        console.log(`✅ 通常診断コンテンツ パーツ[${i}]（テキスト）検証OK: { text: "${part.text.substring(0, 30)}..." }`);
+      }
+    }
     
     console.log("🤖 通常診断モード: AIリクエスト送信...");
     let result;
     let responseText;
     try {
-      result = await model.generateContent(parts);
+      // 【重要】generateContentにはパーツ配列を直接渡す（SDKの正しい使い方）
+      // 各パーツは必ず { inlineData: {...} } または { text: string } のオブジェクト形式である必要がある
+      console.log("📤 generateContent呼び出し前の最終確認（通常診断）:");
+      console.log(`  - パーツ数: ${mainContent.length}`);
+      mainContent.forEach((part, idx) => {
+        console.log(`  - パーツ[${idx}]: ${"inlineData" in part ? "画像" : "text" in part ? "テキスト" : "不明"}, 型: ${typeof part}`);
+      });
+      
+      result = await model.generateContent(mainContent);
       responseText = result.response.text();
       console.log("✅ AI応答を受信しました（長さ:", responseText.length, "文字）");
     } catch (generateError: any) {
@@ -632,6 +923,12 @@ Markdown記法は含めず、純粋なJSON文字列だけを返してくださ�
       console.error("エラータイプ:", generateError?.constructor?.name || typeof generateError);
       console.error("エラーメッセージ:", generateError?.message || "メッセージなし");
       console.error("エラースタック:", generateError?.stack || "スタックなし");
+      
+      // ByteStringエラーの場合は詳細な情報を出力
+      if (generateError?.message?.includes("ByteString")) {
+        console.error("⚠️ ByteStringエラーが発生しました - 画像データに無効な文字が含まれています");
+        debugGeminiContent(mainContent);
+      }
       
       // APIキー関連のエラーをチェック
       if (generateError?.message?.includes("API_KEY") || 
@@ -687,6 +984,43 @@ Markdown記法は含めず、純粋なJSON文字列だけを返してくださ�
       json.unconfirmed_item_names = json.items
         .filter((item: any) => item.requires_confirmation)
         .map((item: any) => item.name);
+      
+      // 削減可能額を各項目の削減額の合計として再計算
+      // warning項目は除外し、各項目の price_original - price_fair を合計する
+      try {
+        const aiCalculatedDiscount = json.discount_amount ?? 0; // AIが計算した元の値を保持
+        const calculatedDiscountAmount = json.items
+          .filter((item: any) => item && item.status !== 'warning') // warning項目を除外
+          .reduce((sum: number, item: any) => {
+            // 数値に変換（文字列やnullの場合は0として扱う）
+            const original = typeof item.price_original === 'number' ? item.price_original : 
+                            (typeof item.price_original === 'string' ? parseFloat(item.price_original) || 0 : 0);
+            const fair = typeof item.price_fair === 'number' ? item.price_fair : 
+                        (typeof item.price_fair === 'string' ? parseFloat(item.price_fair) || 0 : 0);
+            const itemDiscount = original - fair;
+            return sum + Math.max(0, itemDiscount); // 負の値は0として扱う
+          }, 0);
+        
+        // 計算した削減額で上書き
+        json.discount_amount = calculatedDiscountAmount;
+        
+        console.log("削減額再計算:", {
+          ai_calculated: aiCalculatedDiscount,
+          recalculated: calculatedDiscountAmount,
+          difference: aiCalculatedDiscount - calculatedDiscountAmount,
+          items_count: json.items.length,
+          non_warning_items: json.items.filter((item: any) => item && item.status !== 'warning').length
+        });
+      } catch (calcError: any) {
+        console.error("削減額再計算エラー:", calcError);
+        console.error("エラー詳細:", {
+          message: calcError.message,
+          stack: calcError.stack,
+          json_items: json.items ? JSON.stringify(json.items.slice(0, 3)) : 'items not found'
+        });
+        // エラーが発生した場合は、AIが計算した値をそのまま使用（フォールバック）
+        console.warn("削減額の再計算に失敗しました。AIが計算した値をそのまま使用します。");
+      }
     }
 
     console.log("診断完了:", {
@@ -718,15 +1052,28 @@ Markdown記法は含めず、純粋なJSON文字列だけを返してくださ�
     let errorMessage = "解析エラーが発生しました";
     let errorDetails = error.message || "不明なエラー";
     
+    // より詳細なエラー情報をログに記録
+    if (error.message) {
+      console.error("エラーメッセージ詳細:", error.message);
+      if (error.message.includes("削減額再計算")) {
+        console.error("削減額再計算でエラーが発生しました");
+        errorMessage = "削減額の計算中にエラーが発生しました";
+        errorDetails = "診断結果の処理中に問題が発生しました。もう一度お試しください。";
+      } else if (error.message.includes("JSON") || error.message.includes("パース")) {
+        errorMessage = "AIからの応答の解析に失敗しました";
+        errorDetails = "もう一度お試しください。";
+      } else if (error.message.includes("API_KEY") || error.message?.includes("api key")) {
+        errorMessage = "APIキーが正しく設定されていません";
+        errorDetails = "サーバー管理者にお問い合わせください。";
+      } else if (error.message.includes("ByteString")) {
+        errorMessage = "画像データの処理に失敗しました";
+        errorDetails = "画像データに問題があります。別の画像で再度お試しください。";
+      }
+    }
+    
     if (error.status === 429 || error.message?.includes('429')) {
       errorMessage = "APIレート制限に達しました";
       errorDetails = "しばらく時間をおいてから再度お試しください。";
-    } else if (error.message?.includes("JSON")) {
-      errorMessage = "AIからの応答の解析に失敗しました";
-      errorDetails = "もう一度お試しください。";
-    } else if (error.message?.includes("API_KEY") || error.message?.includes("api key")) {
-      errorMessage = "APIキーが正しく設定されていません";
-      errorDetails = "サーバー管理者にお問い合わせください。";
     }
     
     console.error("返却するエラーレスポンス:", { error: errorMessage, details: errorDetails, status: error.status || 500 });

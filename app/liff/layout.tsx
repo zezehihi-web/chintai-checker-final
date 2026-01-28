@@ -32,7 +32,7 @@ export default function LiffLayout({
           `}
         </Script>
       </head>
-      <body className="theme-neon">{children}</body>
+      <body className="bg-white">{children}</body>
     </html>
   );
 }

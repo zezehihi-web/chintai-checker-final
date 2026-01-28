@@ -196,7 +196,7 @@ const CameraCapture = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 bg-black">
+    <div className="fixed inset-0 z-50 bg-gray-900">
       {/* ヘッダー */}
       <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/80 to-transparent p-4 pt-safe">
         <div className="flex items-center justify-between">
@@ -222,7 +222,7 @@ const CameraCapture = ({
                 trackButtonClick(e);
                 onClose();
               }}
-              className="bg-white text-black px-6 py-3 rounded-full font-bold"
+              className="bg-white text-slate-800 px-6 py-3 rounded-full font-bold shadow-md hover:bg-gray-100 transition-colors"
             >
               ギャラリーから選択
             </button>
@@ -385,7 +385,7 @@ const FortuneResult = ({ result }: { result: AnalysisResult }) => {
         {/* ヘッダー */}
         <div className="text-center mb-8 animate-fade-in-up">
           <div className="text-6xl mb-4 animate-bounce-slow">{getMainIcon()}</div>
-          <h2 className="text-2xl md:text-3xl font-black text-white mb-2 tracking-wide">
+            <h2 className="text-2xl md:text-3xl font-black text-slate-800 mb-2 tracking-wide">
             {result.fortune_title || "特別鑑定結果"}
           </h2>
           <p className="text-purple-200/80 text-sm">
@@ -397,7 +397,7 @@ const FortuneResult = ({ result }: { result: AnalysisResult }) => {
         {result.fortune_person_type && (
           <div className="text-center mb-8 animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
             <div className={`inline-block ${getTypeBadgeStyle()} backdrop-blur-sm border rounded-full px-6 py-3`}>
-              <p className="text-white font-bold text-lg">
+              <p className="text-slate-700 font-bold text-lg">
                 「{result.fortune_person_type}」
               </p>
             </div>
@@ -417,7 +417,7 @@ const FortuneResult = ({ result }: { result: AnalysisResult }) => {
                   <div className="text-3xl flex-shrink-0">{item.icon}</div>
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-2">
-                      <h3 className="text-white font-bold text-lg">{item.category}</h3>
+                      <h3 className="text-slate-800 font-bold text-lg">{item.category}</h3>
                       <div className="flex items-center gap-1">
                         <span className={`text-2xl font-black ${item.score >= 90 ? 'text-yellow-400' : item.score >= 80 ? 'text-pink-400' : 'text-blue-400'}`}>
                           {item.score}
@@ -460,21 +460,21 @@ const FortuneResult = ({ result }: { result: AnalysisResult }) => {
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20">
               <p className="text-2xl mb-1">🎨</p>
               <p className="text-purple-200/60 text-[10px] mb-1">ラッキーカラー</p>
-              <p className="text-white font-bold text-sm">{result.fortune_lucky_color}</p>
+              <p className="text-slate-700 font-bold text-sm">{result.fortune_lucky_color}</p>
             </div>
           )}
           {result.fortune_lucky_number && (
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20">
               <p className="text-2xl mb-1">🔢</p>
               <p className="text-purple-200/60 text-[10px] mb-1">ラッキーナンバー</p>
-              <p className="text-white font-bold text-sm">{result.fortune_lucky_number}</p>
+              <p className="text-slate-700 font-bold text-sm">{result.fortune_lucky_number}</p>
             </div>
           )}
           {result.fortune_power_spot && (
             <div className="bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center border border-white/20">
               <p className="text-2xl mb-1">⛩️</p>
               <p className="text-purple-200/60 text-[10px] mb-1">パワースポット</p>
-              <p className="text-white font-bold text-sm">{result.fortune_power_spot}</p>
+              <p className="text-slate-700 font-bold text-sm">{result.fortune_power_spot}</p>
             </div>
           )}
         </div>
@@ -501,7 +501,7 @@ const FortuneResult = ({ result }: { result: AnalysisResult }) => {
         {/* 総括 */}
         {result.fortune_summary && (
           <div className="bg-gradient-to-br from-white/10 to-white/5 backdrop-blur-sm rounded-2xl p-6 border border-white/20 animate-fade-in-up" style={{ animationDelay: '0.7s' }}>
-            <h3 className="text-white font-bold text-lg mb-4 flex items-center gap-2">
+            <h3 className="text-slate-800 font-bold text-lg mb-4 flex items-center gap-2">
               <span>🌟</span> 鑑定師からのメッセージ
             </h3>
             <p className="text-purple-100/90 text-sm leading-relaxed whitespace-pre-wrap">
@@ -556,7 +556,7 @@ const RiskGauge = ({ score }: { score: number }) => {
   return (
     <div className="w-full animate-fade-in-up">
       <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-bold text-slate-700 tracking-wide uppercase">払いすぎ危険度</span>
+                <span className="text-sm font-bold text-slate-800 tracking-wide uppercase">払いすぎ危険度</span>
         <div className="flex items-baseline gap-1">
           <span className={`text-3xl font-black ${textColor} drop-shadow-md`} style={{ 
             textShadow: `0 2px 8px ${coinColor.mid}40`
@@ -606,7 +606,7 @@ const RiskGauge = ({ score }: { score: number }) => {
         </div>
         
         <div className="mt-3 flex justify-between items-center">
-          <span className="text-xs text-slate-500 font-medium">安全</span>
+                  <span className="text-xs text-gray-600 font-medium">安全</span>
           <div className="flex gap-1.5">
             {Array.from({ length: 5 }).map((_, i) => {
               const isActive = i * 25 < score;
@@ -631,7 +631,7 @@ const RiskGauge = ({ score }: { score: number }) => {
               );
             })}
           </div>
-          <span className="text-xs text-slate-500 font-medium">危険</span>
+                  <span className="text-xs text-gray-600 font-medium">危険</span>
         </div>
       </div>
     </div>
@@ -1016,6 +1016,29 @@ export default function Home() {
 
   const formatYen = (num: number) => new Intl.NumberFormat('ja-JP').format(num);
 
+  /**
+   * 【重要】削減可能額を各項目の削減額の合計として計算
+   * APIの値をそのまま使わず、表示されている各項目の削減額を合計する
+   * warning項目は除外し、各項目の price_original - price_fair を合計する
+   */
+  const calculateDiscountAmount = (items: AnalysisResult['items']): number => {
+    if (!items || !Array.isArray(items)) {
+      return 0;
+    }
+    
+    return items
+      .filter((item) => item && item.status !== 'warning')
+      .reduce((sum: number, item) => {
+        // 数値に変換（文字列やnullの場合は0として扱う）
+        const original = typeof item.price_original === 'number' ? item.price_original : 
+                        (typeof item.price_original === 'string' ? parseFloat(item.price_original) || 0 : 0);
+        const fair = typeof item.price_fair === 'number' ? item.price_fair : 
+                    (typeof item.price_fair === 'string' ? parseFloat(item.price_fair) || 0 : 0);
+        const itemDiscount = original - fair;
+        return sum + Math.max(0, itemDiscount); // 負の値は0として扱う
+      }, 0);
+  };
+
   const createShareLink = async () => {
     if (!result || isCreatingShare) return;
     setIsCreatingShare(true);
@@ -1040,11 +1063,13 @@ export default function Home() {
 
   const generateShareText = () => {
     if (!result) return "";
+    // 【重要】削減可能額は各項目の合計として計算
+    const calculatedDiscountAmount = calculateDiscountAmount(result.items);
     return `【賃貸初期費用AI診断】\n` +
            `提示額：¥${formatYen(result.total_original)}\n` +
            `適正額：¥${formatYen(result.total_fair)}\n` +
            `⬇️ ⬇️ ⬇️\n` +
-           `削減目安：-¥${formatYen(result.discount_amount)}\n\n` +
+           `削減目安：-¥${formatYen(calculatedDiscountAmount)}\n\n` +
            `これから部屋探しする人は要チェック！👇\n`;
   };
 
@@ -1191,7 +1216,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-dvh bg-[#02060D] text-slate-100 font-sans pb-20 relative overflow-hidden">
+    <div className="min-h-dvh bg-white text-slate-800 font-sans pb-20 relative overflow-hidden">
 
       {/* カメラUI */}
       <CameraCapture
@@ -1204,55 +1229,34 @@ export default function Home() {
       {/* ================= TOP VIEW ================= */}
       {currentView === "top" && (
         <div className="max-w-3xl mx-auto p-6 md:p-10 animate-fade-in">
-          <div className="text-center mb-6 mt-4 md:mt-6">
+          <div className="text-center mb-4 mt-2 md:mt-4">
             <div className="mx-auto w-full max-w-72 md:max-w-[26rem] mb-1">
-              <h2 className="neonHeader text-center font-black tracking-widest text-xl md:text-3xl leading-none whitespace-nowrap transform scale-x-105">
+              <h2 className="text-center font-black tracking-widest leading-none whitespace-nowrap text-slate-800 text-[0.75rem] sm:text-[0.875rem] md:text-[1rem]">
                 AIが見積書を適正か診断
               </h2>
             </div>
-            <div className="mx-auto w-full max-w-64 md:max-w-96 mb-2">
-              <div className="neonTitleWrap">
-                <img
-                  src="/chincheka_final.png?v=2"
-                  alt="チンチェカ タイトル"
-                  width={1024}
-                  height={1024}
-                  className="neonTitleBase w-full h-auto select-none"
-                  loading="eager"
-                  decoding="async"
-                />
-                <img
-                  src="/chincheka_final.png?v=2"
-                  alt=""
-                  aria-hidden="true"
-                  width={1024}
-                  height={1024}
-                  className="neonGlowLayer w-full h-auto select-none"
-                  loading="eager"
-                  decoding="async"
-                />
-              </div>
-            </div>
-            <div className="mx-auto w-full text-center">
-              <p className="text-cyan-50 font-extrabold text-lg sm:text-2xl md:text-5xl leading-tight whitespace-nowrap drop-shadow-sm">
-                「<span className="text-[#FFD84D] font-black">見積書</span>」と「<span className="text-[#FFD84D] font-black">募集図面</span>」を
-              </p>
-              <p className="text-cyan-50 font-extrabold text-lg sm:text-2xl md:text-5xl leading-tight whitespace-nowrap drop-shadow-sm">
-                ↓↓貼るだけ↓↓
-              </p>
+            <div className="mx-auto w-full max-w-4xl mb-3">
+              <h1 className="text-[1.8rem] md:text-[2.25rem] lg:text-[2.7rem] font-bold tracking-wide text-center whitespace-nowrap bg-gradient-to-r from-blue-500 via-blue-600 to-indigo-600 bg-clip-text text-transparent" style={{ 
+                fontFamily: '"Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", "MS PGothic", sans-serif',
+                letterSpacing: '0.1em',
+                fontWeight: 700,
+                filter: 'drop-shadow(0 2px 4px rgba(59, 130, 246, 0.2))'
+              }}>
+                賃貸初期費用チェッカー
+              </h1>
             </div>
           </div>
 
           {/* 2カラムレイアウト: 左=見積書, 右=図面 */}
-          <div className="grid grid-cols-2 gap-2 md:gap-4 mb-8">
+          <div className="grid grid-cols-2 gap-2 md:gap-4 mb-2">
             {/* 左カラム: 見積書 */}
             <div className="flex flex-col">
               <div className="flex items-center gap-1 md:gap-2 mb-2 md:mb-3">
                 <span className="bg-red-500 text-white text-[9px] md:text-xs font-bold px-1.5 md:px-2 py-0.5 md:py-1 rounded-full">必須</span>
-                <h3 className="text-sm md:text-base font-bold text-white">見積書</h3>
+                <h3 className="text-sm md:text-base font-bold text-slate-800">見積書</h3>
               </div>
               
-              <div className="bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-2xl p-4 md:p-6 relative overflow-hidden hover:border-blue-500/50 transition-all group flex-1 min-h-72 flex flex-col">
+              <div className="bg-white border-2 border-dashed border-gray-300 rounded-2xl p-4 md:p-6 relative overflow-hidden hover:border-blue-400 transition-all group flex-1 min-h-72 flex flex-col shadow-sm">
                 {estimatePreview ? (
                   <div className="relative flex-1 flex items-center justify-center py-4">
                     <img src={estimatePreview} className="w-full h-full max-h-64 object-contain rounded-lg" alt="見積書プレビュー" />
@@ -1278,14 +1282,14 @@ export default function Home() {
                         className="w-16 h-16 md:w-20 md:h-20 object-contain drop-shadow-md"
                       />
                     </div>
-                    <p className="text-slate-400 text-xs md:text-sm mb-3 md:mb-4">見積書の画像</p>
+                    <p className="text-gray-500 text-xs md:text-sm mb-3 md:mb-4">見積書の画像</p>
                     <div className="flex gap-2 justify-center flex-wrap">
                       <button
                         onClick={(e) => {
                           trackButtonClick(e);
                           openCamera("estimate");
                         }}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all text-sm min-h-[44px] touch-manipulation"
+                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all text-sm min-h-[44px] touch-manipulation shadow-md"
                       >
                         <span>📷</span> 撮影
                       </button>
@@ -1294,7 +1298,7 @@ export default function Home() {
                           trackButtonClick(e);
                           estimateInputRef.current?.click();
                         }}
-                        className="bg-slate-700 hover:bg-slate-600 text-white font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all text-sm min-h-[44px] touch-manipulation"
+                        className="bg-gray-100 hover:bg-gray-200 text-slate-800 font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all text-sm min-h-[44px] touch-manipulation border border-gray-300"
                       >
                         <span>🖼️</span> 選択
                       </button>
@@ -1315,11 +1319,11 @@ export default function Home() {
             <div className="flex flex-col">
               <div className="flex items-center gap-1 md:gap-2 mb-2 md:mb-3">
                 <span className="bg-emerald-500/80 text-white text-[9px] md:text-xs font-bold px-1.5 md:px-2 py-0.5 md:py-1 rounded-full">推奨</span>
-                <h3 className="text-sm md:text-base font-bold text-white">募集図面</h3>
+                <h3 className="text-sm md:text-base font-bold text-slate-800">募集図面</h3>
                 <span className="text-slate-500 text-[9px] md:text-xs">精度UP</span>
               </div>
               
-              <div className="bg-slate-800/50 border-2 border-dashed border-slate-600 rounded-2xl p-4 md:p-6 relative overflow-hidden hover:border-blue-500/50 transition-all group flex-1 min-h-72 flex flex-col">
+              <div className="bg-white border-2 border-dashed border-gray-300 rounded-2xl p-4 md:p-6 relative overflow-hidden hover:border-blue-400 transition-all group flex-1 min-h-72 flex flex-col shadow-sm">
                 {planPreview ? (
                   <div className="relative flex-1 flex items-center justify-center py-4">
                     <img src={planPreview} className="w-full h-full max-h-64 object-contain rounded-lg" alt="募集図面プレビュー" />
@@ -1345,14 +1349,14 @@ export default function Home() {
                         className="w-16 h-16 md:w-20 md:h-20 object-contain drop-shadow-md"
                       />
                     </div>
-                    <p className="text-slate-400 text-xs md:text-sm mb-3 md:mb-4">図面の画像</p>
+                    <p className="text-gray-500 text-xs md:text-sm mb-3 md:mb-4">図面の画像</p>
                     <div className="flex gap-2 justify-center flex-wrap">
                       <button
                         onClick={(e) => {
                           trackButtonClick(e);
                           openCamera("plan");
                         }}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all text-sm min-h-[44px] touch-manipulation"
+                        className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all text-sm min-h-[44px] touch-manipulation shadow-md"
                       >
                         <span>📷</span> 撮影
                       </button>
@@ -1361,7 +1365,7 @@ export default function Home() {
                           trackButtonClick(e);
                           planInputRef.current?.click();
                         }}
-                        className="bg-slate-700 hover:bg-slate-600 text-white font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all text-sm min-h-[44px] touch-manipulation"
+                        className="bg-gray-100 hover:bg-gray-200 text-slate-800 font-bold px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all text-sm min-h-[44px] touch-manipulation border border-gray-300"
                       >
                         <span>🖼️</span> 選択
                       </button>
@@ -1380,7 +1384,7 @@ export default function Home() {
           </div>
 
           {/* 撮影のコツ（アップロードボックス直下） */}
-          <div className="mt-2 md:mt-3 tipsCard text-left">
+          <div className="mt-1 tipsCard text-left">
             <div className="flex flex-col gap-1">
               <p className="tipsCard__title text-xs md:text-sm leading-tight">
                 📸撮影のコツ
@@ -1401,12 +1405,12 @@ export default function Home() {
                 disabled={!estimateFile || isLoading}
                 className={`w-full md:w-auto px-8 md:px-16 py-5 md:py-6 rounded-xl font-bold shadow-xl transition-all ${
                   !estimateFile || isLoading
-                    ? "bg-slate-700 text-slate-500 cursor-not-allowed shadow-none" 
+                    ? "bg-gray-200 text-gray-400 cursor-not-allowed shadow-none" 
                     : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-blue-500/30"
                 }`}
               >
                 {!estimateFile ? (
-                  <span className="text-4xl md:text-5xl leading-none">診断開始</span>
+                  <span className="leading-none text-[1.8rem] md:text-[2.4rem]">AI診断開始</span>
                 ) : (
                   <span className="text-xl md:text-2xl">適正価格を診断</span>
                 )}
@@ -1415,7 +1419,7 @@ export default function Home() {
               <div className={`backdrop-blur-sm rounded-2xl p-6 border shadow-xl max-w-md mx-auto ${
                 isSecretModeLoading 
                   ? "bg-gradient-to-br from-purple-900/90 via-indigo-900/90 to-purple-900/90 border-purple-500/50" 
-                  : "bg-slate-800/80 border-slate-700"
+                  : "bg-white border-gray-200"
               }`}>
                 {/* 上部: 進捗率と経過時間 */}
                 <div className="flex justify-between items-center mb-4">
@@ -1423,7 +1427,7 @@ export default function Home() {
                     <div className={`w-2 h-2 rounded-full animate-pulse ${
                       isSecretModeLoading ? "bg-purple-400" : "bg-blue-500"
                     }`}></div>
-                    <span className="text-sm font-bold text-white">
+                    <span className="text-sm font-bold text-slate-800">
                       {isSecretModeLoading ? "🔮 特別鑑定中" : "AI診断中"}
                     </span>
                 </div>
@@ -1437,7 +1441,7 @@ export default function Home() {
                 
                 {/* プログレスバー */}
                 <div className={`h-2 rounded-full overflow-hidden mb-4 ${
-                  isSecretModeLoading ? "bg-purple-900/50" : "bg-slate-700"
+                  isSecretModeLoading ? "bg-purple-900/50" : "bg-gray-200"
                 }`}>
                   <div 
                     className={`h-full w-full transition-transform duration-300 relative ${
@@ -1453,10 +1457,10 @@ export default function Home() {
                 
                 {/* 現在のステップ */}
                 <div className={`rounded-lg p-3 mb-3 ${
-                  isSecretModeLoading ? "bg-purple-800/50" : "bg-slate-900/50"
+                  isSecretModeLoading ? "bg-purple-800/50" : "bg-gray-50"
                 }`}>
                   <p className={`text-sm font-medium text-center ${
-                    isSecretModeLoading ? "text-purple-100" : "text-white"
+                    isSecretModeLoading ? "text-purple-100" : "text-slate-700"
                   }`}>{loadingStep}</p>
                 </div>
                 
@@ -1471,7 +1475,7 @@ export default function Home() {
                 
                 {/* 経過時間と残り時間目安 */}
                 <div className={`flex justify-between text-xs ${
-                  isSecretModeLoading ? "text-purple-400/70" : "text-slate-500"
+                  isSecretModeLoading ? "text-purple-400/70" : "text-gray-500"
                 }`}>
                   <span>経過: {loadingElapsed}秒</span>
                   <span>
@@ -1496,7 +1500,7 @@ export default function Home() {
               </div>
             )}
           </div>
-          {errorMessage && <div className="mt-6 bg-red-500/20 text-red-400 px-4 py-3 rounded-lg text-center text-sm font-bold border border-red-500/30">{errorMessage}</div>}
+          {errorMessage && <div className="mt-6 bg-red-50 text-red-600 px-4 py-3 rounded-lg text-center text-sm font-bold border-2 border-red-200">{errorMessage}</div>}
         </div>
       )}
 
@@ -1585,7 +1589,7 @@ export default function Home() {
                           準備中...
                         </div>
                       ) : (
-                        (result.discount_amount ?? 0) > 0 ? (
+                        (calculateDiscountAmount(result.items) > 0) ? (
                           <div className="flex flex-col text-left leading-tight">
                             <span className="text-lg md:text-xl font-bold text-white drop-shadow-md">
                               <span className="text-[#ff0000] font-extrabold text-xl md:text-2xl text-outline-white-strong mr-1">割引済み</span>
@@ -1605,31 +1609,31 @@ export default function Home() {
                 </div>
                 <div className="relative z-10 mt-6 pt-6 border-t border-slate-700">
                   <div className="flex flex-wrap gap-2 md:gap-4 text-[10px] md:text-sm justify-center md:justify-start">
-                    <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                    <div className="flex items-center gap-1 md:gap-2 text-slate-600 group">
                       <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
                         <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>📅</span>
                       </div>
                       <span className="font-black tracking-tight text-[10px] md:text-sm whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>365日対応</span>
                     </div>
-                    <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                    <div className="flex items-center gap-1 md:gap-2 text-slate-600 group">
                       <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-amber-500/20 to-amber-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
                         <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>🏆</span>
                       </div>
                       <span className="font-black tracking-tight text-[10px] md:text-sm whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>実績800件</span>
                     </div>
-                    <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                    <div className="flex items-center gap-1 md:gap-2 text-slate-600 group">
                       <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
                         <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>📱</span>
                       </div>
                       <span className="font-black tracking-tight text-[10px] md:text-sm whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>来店不要</span>
                     </div>
-                    <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                    <div className="flex items-center gap-1 md:gap-2 text-slate-600 group">
                       <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
                         <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>💰</span>
                       </div>
                       <span className="font-black tracking-tight text-[10px] md:text-sm whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>仲介手数料無料</span>
                     </div>
-                    <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                    <div className="flex items-center gap-1 md:gap-2 text-slate-600 group">
                       <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
                         <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>✅</span>
                       </div>
@@ -1654,10 +1658,10 @@ export default function Home() {
           ) : (
           /* 通常モード: 診断結果UI */
           <>
-          <div id="result-export" ref={resultRef} className="bg-white p-8 rounded-3xl border border-slate-200 shadow-2xl relative overflow-hidden mb-8 animate-scale-in text-slate-600">
-            <div className="border-b border-slate-100 pb-8 mb-8 animate-fade-in-up">
+          <div id="result-export" ref={resultRef} className="bg-white p-8 rounded-3xl border-2 border-gray-200 shadow-xl relative overflow-hidden mb-8 animate-scale-in text-slate-700">
+            <div className="border-b border-gray-200 pb-8 mb-8 animate-fade-in-up">
               <div className="text-center mb-3">
-                <p className="text-xs text-slate-400 font-bold tracking-wider uppercase mb-2">物件名</p>
+                <p className="text-xs text-gray-500 font-bold tracking-wider uppercase mb-2">物件名</p>
               </div>
               <div className="text-center mb-6">
                 <div className="flex items-baseline justify-center gap-3 flex-wrap">
@@ -1665,7 +1669,7 @@ export default function Home() {
                     {result.property_name && result.property_name !== "不明" ? result.property_name : "物件名入力なし"}
                   </h2>
                   {result.room_number !== "不明" && (
-                    <span className="text-xl md:text-2xl text-slate-500 font-black">
+                    <span className="text-xl md:text-2xl text-gray-600 font-black">
                       {result.room_number}
                     </span>
                   )}
@@ -1676,10 +1680,10 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl p-6 mb-8 text-center shadow-lg relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-700 text-white rounded-2xl p-6 mb-6 text-center shadow-lg relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
               <p className="text-blue-100 text-sm font-bold mb-2">削減可能額</p>
               <div className="text-4xl md:text-5xl font-black mb-3 tracking-tight">
-                -{formatYen(result.discount_amount)}<span className="text-lg font-medium">円</span>
+                -{formatYen(calculateDiscountAmount(result.items))}<span className="text-lg font-medium">円</span>
               </div>
               <div className="inline-flex items-center gap-2 bg-white/20 px-4 py-1.5 rounded-full text-sm backdrop-blur-sm">
                 <span className="opacity-80">提示: ¥{formatYen(result.total_original)}</span>
@@ -1692,20 +1696,6 @@ export default function Home() {
                 </p>
               )}
             </div>
-
-            {result.has_unconfirmed_items && (
-              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-4 animate-fade-in-up">
-                <div className="flex items-start gap-2">
-                  <span className="text-amber-500 text-lg">⚠️</span>
-                  <div>
-                    <p className="text-sm font-bold text-amber-700">一部の項目は確認が必要です</p>
-                    <p className="text-xs text-amber-600 mt-1">
-                      画像からの読み取りに不確実性がある項目があります。実際の書類と照合してください。
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
 
             {/* 🔴 削減可能な項目 (cut/negotiable) */}
             {result.items.filter(i => i.status === 'cut' || i.status === 'negotiable').length > 0 && (
@@ -1730,16 +1720,16 @@ export default function Home() {
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <p className="text-xs text-slate-500">{item.reason}</p>
+                        <p className="text-xs text-gray-600">{item.reason}</p>
                         <div className="text-right whitespace-nowrap ml-2">
-                          <span className="text-xs text-slate-400 line-through block">¥{formatYen(item.price_original)}</span>
+                          <span className="text-xs text-gray-400 line-through block">¥{formatYen(item.price_original)}</span>
                           <span className="text-red-600 font-bold">¥{formatYen(item.price_fair)}</span>
                         </div>
                       </div>
                       {item.evidence && (
-                        <div className="mt-2 pt-2 border-t border-slate-200">
-                          <p className="text-[10px] text-slate-400 font-bold mb-1">📋 根拠</p>
-                          <p className="text-[10px] text-slate-500">{item.evidence.source_description}</p>
+                        <div className="mt-2 pt-2 border-t border-gray-200">
+                          <p className="text-[10px] text-gray-400 font-bold mb-1">📋 根拠</p>
+                          <p className="text-[10px] text-gray-500">{item.evidence.source_description}</p>
                         </div>
                       )}
                     </div>
@@ -1753,21 +1743,20 @@ export default function Home() {
               <div className="mb-6">
                 <div className="flex items-center gap-2 mb-3">
                   <span className="text-xl">🟡</span>
-                  <h3 className="text-sm font-bold text-amber-600">要確認項目</h3>
-                </div>
-                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-3">
-                  <p className="text-xs text-amber-700 mb-2">
-                    <span className="font-bold">⚠️ これらの項目は削減可能額に含まれていません</span>
-                  </p>
-                  <p className="text-xs text-amber-600">
-                    募集図面との照合やプロによる確認が必要です。詳細は不動産会社または弊社にご相談ください。
-                  </p>
+                  <h3 className="text-sm font-bold text-amber-600">
+                    要確認項目
+                    {result.has_unconfirmed_items && (
+                      <span className="text-xs font-normal text-amber-500 ml-2">
+                        (一部の項目は確認が必要です)
+                      </span>
+                    )}
+                  </h3>
                 </div>
                 <div className="space-y-3">
                   {result.items.filter(i => i.status === 'warning').map((item, index) => (
                     <div
                       key={index}
-                      className="border rounded-xl p-4 animate-fade-in-up bg-amber-50 border-amber-200"
+                      className="border rounded-xl p-4 animate-fade-in-up bg-amber-50 border-amber-100"
                       style={{ animationDelay: `${0.2 + index * 0.05}s` }}
                     >
                       <div className="flex justify-between items-center mb-1">
@@ -1777,19 +1766,33 @@ export default function Home() {
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <p className="text-xs text-amber-700">{item.reason}</p>
+                        <p className="text-xs text-gray-600">{item.reason}</p>
                         <div className="text-right whitespace-nowrap ml-2">
                           <span className="text-amber-600 font-bold">¥{formatYen(item.price_original)}</span>
                         </div>
                       </div>
                       {item.evidence && (
-                        <div className="mt-2 pt-2 border-t border-amber-200">
-                          <p className="text-[10px] text-amber-500 font-bold mb-1">📋 根拠</p>
-                          <p className="text-[10px] text-amber-600">{item.evidence.source_description}</p>
+                        <div className="mt-2 pt-2 border-t border-gray-200">
+                          <p className="text-[10px] text-gray-400 font-bold mb-1">📋 根拠</p>
+                          <p className="text-[10px] text-gray-500">{item.evidence.source_description}</p>
                         </div>
                       )}
                     </div>
                   ))}
+                </div>
+                {/* 注釈テキスト: 削除した黄色いボックス内の内容をここに移動 */}
+                <div className="mt-3">
+                  <p className="text-xs text-gray-500 mb-1">
+                    <span className="font-medium">⚠️ これらの項目は削減可能額に含まれていません</span>
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    募集図面との照合やプロによる確認が必要です。詳細は不動産会社または弊社にご相談ください。
+                    {result.has_unconfirmed_items && (
+                      <span className="block mt-1">
+                        画像からの読み取りに不確実性がある項目があります。実際の書類と照合してください。
+                      </span>
+                    )}
+                  </p>
                 </div>
               </div>
             )}
@@ -1801,16 +1804,16 @@ export default function Home() {
                   <span className="text-xl">🟢</span>
                   <h3 className="text-sm font-bold text-emerald-600">適正な項目</h3>
                 </div>
-                <div className="text-xs text-slate-500 space-y-2">
+                <div className="text-xs text-gray-600 space-y-2">
                   {result.items.filter(i => i.status === 'fair').map((item, idx) => (
-                    <div key={idx} className="border border-emerald-100 bg-emerald-50/30 rounded-lg p-3">
+                    <div key={idx} className="border border-emerald-200 bg-emerald-50 rounded-lg p-3 shadow-sm">
                       <div className="flex justify-between">
-                        <span className="font-medium text-slate-700">{item.name}</span>
+                        <span className="font-medium text-slate-800">{item.name}</span>
                         <span className="text-emerald-600 font-bold">¥{formatYen(item.price_fair)}</span>
                       </div>
-                      <p className="text-[10px] text-slate-500 mt-1">{item.reason}</p>
+                      <p className="text-[10px] text-gray-600 mt-1">{item.reason}</p>
                       {item.evidence && (
-                        <p className="text-[10px] text-slate-400 mt-1">
+                        <p className="text-[10px] text-gray-500 mt-1">
                           根拠: {item.evidence.source_description}
                         </p>
                       )}
@@ -1904,8 +1907,8 @@ export default function Home() {
             )}
           </div>
 
-          <div className="bg-slate-800/80 backdrop-blur-sm rounded-xl p-5 border-l-4 border-blue-500 text-slate-300 text-sm leading-relaxed mb-8 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-            <h3 className="font-bold text-blue-400 mb-3 flex items-center gap-2">🤖 AIエージェントの総評</h3>
+          <div className="bg-white border-2 border-gray-200 rounded-xl p-5 text-slate-700 text-sm leading-relaxed mb-8 animate-fade-in-up shadow-sm" style={{ animationDelay: '0.3s' }}>
+            <h3 className="font-bold text-blue-600 mb-3 flex items-center gap-2">🤖 AIエージェントの総評</h3>
             {(() => {
               let content = result.pro_review.content.trim();
               content = content.replace(/この物件の初期費用について[^\n]*\n?/g, '');
@@ -1928,7 +1931,7 @@ export default function Home() {
               });
               
               if (lines.length === 0) {
-                return <p className="text-slate-400">総評を読み込み中...</p>;
+                return <p className="text-gray-500">総評を読み込み中...</p>;
               }
               
               let summaryIndex = -1;
@@ -1965,7 +1968,7 @@ export default function Home() {
               return (
                 <>
                   {summary && (
-                    <p className="font-black text-blue-300 text-base mb-3">{summary}</p>
+                    <p className="font-black text-blue-600 text-base mb-3">{summary}</p>
                   )}
                   {filteredRestLines.map((line, i) => {
                     const trimmed = line.trim();
@@ -1980,8 +1983,8 @@ export default function Home() {
                     }
                     return <p key={i} className="mb-2">{trimmed}</p>;
                   }).filter(Boolean)}
-                  <p className="text-red-400 font-bold text-sm mt-4 mb-2">{noticeText}</p>
-                  <p className="text-slate-400 text-sm">{negotiationText}</p>
+                  <p className="text-red-500 font-bold text-sm mt-4 mb-2">{noticeText}</p>
+                  <p className="text-gray-600 text-sm">{negotiationText}</p>
                 </>
               );
             })()}
@@ -2025,7 +2028,7 @@ export default function Home() {
                        準備中...
                      </div>
                    ) : (
-                     (result.discount_amount ?? 0) > 0 ? (
+                     (calculateDiscountAmount(result.items) > 0) ? (
                        <div className="flex flex-col text-left leading-tight">
                          <span className="text-lg md:text-xl font-bold text-white drop-shadow-md">
                            <span className="text-[#ff0000] font-extrabold text-xl md:text-2xl text-outline-white-strong mr-1">割引済み</span>
@@ -2045,31 +2048,31 @@ export default function Home() {
              </div>
              <div className="relative z-10 mt-6 pt-6 border-t border-slate-700">
                 <div className="flex flex-wrap gap-2 md:gap-4 text-[10px] md:text-sm justify-center md:justify-start">
-                  <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                  <div className="flex items-center gap-1 md:gap-2 text-slate-600 group">
                     <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-blue-500/20 to-blue-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
                       <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>📅</span>
                     </div>
                     <span className="font-black tracking-tight text-[10px] md:text-sm whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>365日対応</span>
                   </div>
-                  <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                  <div className="flex items-center gap-1 md:gap-2 text-slate-600 group">
                     <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-amber-500/20 to-amber-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
                       <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>🏆</span>
                     </div>
                     <span className="font-black tracking-tight text-[10px] md:text-sm whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>実績800件</span>
                   </div>
-                  <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                  <div className="flex items-center gap-1 md:gap-2 text-slate-600 group">
                     <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-green-500/20 to-green-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
                       <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>📱</span>
                     </div>
                     <span className="font-black tracking-tight text-[10px] md:text-sm whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>来店不要</span>
                   </div>
-                  <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                  <div className="flex items-center gap-1 md:gap-2 text-slate-600 group">
                     <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-emerald-500/20 to-emerald-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
                       <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>💰</span>
                     </div>
                     <span className="font-black tracking-tight text-[10px] md:text-sm whitespace-nowrap" style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>仲介手数料無料</span>
                   </div>
-                  <div className="flex items-center gap-1 md:gap-2 text-slate-300 group">
+                  <div className="flex items-center gap-1 md:gap-2 text-slate-600 group">
                     <div className="relative w-6 h-6 md:w-8 md:h-8 flex items-center justify-center bg-gradient-to-br from-purple-500/20 to-purple-600/20 rounded-lg shadow-md group-hover:shadow-lg transition-all">
                       <span className="text-sm md:text-lg" style={{ filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))' }}>✅</span>
                     </div>

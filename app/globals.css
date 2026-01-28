@@ -4,7 +4,7 @@
 
 html,
 body {
-  background-color: #02060D;
+  background-color: #FAFAFA;
 }
 
 /* =========================
@@ -509,32 +509,32 @@ body.theme-neon {
 }
 
 /* ==================================================
-   Tips Card (撮影のコツ) - screenshot-like brown + gold rim
+   Tips Card (撮影のコツ) - Light mode with yellow accents
    ================================================== */
 .tipsCard {
   background: linear-gradient(
     180deg,
-    #3a2412 0%,
-    #2b170a 55%,
-    #241206 100%
+    #FEF9E7 0%,
+    #FCF3CF 55%,
+    #F9E79F 100%
   ) !important;
-  border: 2px solid #8a5a1d !important;
+  border: 2px solid #F39C12 !important;
   /* match upload boxes: rounded-2xl (= 1rem) */
   border-radius: 1rem;
   box-shadow:
-    0 10px 30px rgba(0,0,0,0.45),
-    inset 0 1px 0 rgba(255,210,120,0.18),
-    inset 0 -10px 18px rgba(0,0,0,0.35);
+    0 4px 12px rgba(0,0,0,0.08),
+    inset 0 1px 0 rgba(255,255,255,0.5),
+    inset 0 -4px 8px rgba(243,156,18,0.1);
   padding: 10px 14px;
 }
 
 .tipsCard__title {
-  color: #f2c86b;
+  color: #D68910;
   font-weight: 800;
 }
 
 .tipsCard__text {
-  color: #e6c27a;
+  color: #B7791F;
   font-weight: 600;
 }
 

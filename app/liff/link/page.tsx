@@ -272,15 +272,15 @@ export default function LiffLinkPage() {
   }, []);
 
   return (
-    <div className="min-h-dvh bg-[#02060D] flex items-center justify-center p-6">
-      <div className="neon-card backdrop-blur-sm rounded-3xl p-8 max-w-md w-full text-center">
+    <div className="min-h-dvh bg-white flex items-center justify-center p-6">
+      <div className="bg-white border-2 border-gray-200 shadow-xl rounded-3xl p-8 max-w-md w-full text-center">
         {status === 'loading' && (
           <>
             <div className="mb-6">
-              <div className="neon-spinner inline-block animate-spin rounded-full h-16 w-16 border-t-2 border-b-2 border-transparent"></div>
+              <div className="inline-block animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600"></div>
             </div>
-            <h2 className="neon-title text-xl font-bold mb-2">連携中...</h2>
-            <p className="neon-muted text-sm">
+            <h2 className="text-xl font-bold mb-2 text-slate-800">連携中...</h2>
+            <p className="text-sm text-gray-600">
               LINEアカウントと案件を紐づけています
             </p>
           </>
@@ -291,8 +291,8 @@ export default function LiffLinkPage() {
             <div className="mb-6">
               <div className="text-6xl" aria-hidden="true">✅</div>
             </div>
-            <h2 className="neon-title text-xl font-bold mb-2">連携完了！</h2>
-            <p className="neon-muted text-sm">
+            <h2 className="text-xl font-bold mb-2 text-slate-800">連携完了！</h2>
+            <p className="text-sm text-gray-600">
               LINEに診断結果を送信しました。
               <br />
               このウィンドウは自動的に閉じます。
@@ -305,8 +305,8 @@ export default function LiffLinkPage() {
             <div className="mb-6">
               <div className="text-6xl" aria-hidden="true">👋</div>
             </div>
-            <h2 className="neon-title text-xl font-bold mb-4">まず友だち追加をお願いします</h2>
-            <p className="neon-muted text-sm mb-6">
+            <h2 className="text-xl font-bold mb-4 text-slate-800">まず友だち追加をお願いします</h2>
+            <p className="text-sm mb-6 text-gray-600">
               診断結果をLINEに送信するには、<br />
               公式アカウントを友だち追加する必要があります。
             </p>
@@ -329,7 +329,7 @@ export default function LiffLinkPage() {
               </span>
             </button>
 
-            <p className="neon-muted text-xs mb-4">
+            <p className="text-xs mb-4 text-gray-600">
               友だち追加が完了すると、<br />
               自動的に診断結果を送信します
             </p>
@@ -341,9 +341,9 @@ export default function LiffLinkPage() {
             <div className="mb-6">
               <div className="text-6xl" aria-hidden="true">❌</div>
             </div>
-            <h2 className="neon-title text-xl font-bold mb-2">エラー</h2>
-            <p className="neon-muted text-sm mb-4">{errorMessage}</p>
-            <p className="text-xs neon-muted">
+            <h2 className="text-xl font-bold mb-2 text-slate-800">エラー</h2>
+            <p className="text-sm mb-4 text-gray-600">{errorMessage}</p>
+            <p className="text-xs text-gray-500">
               診断画面に戻って、もう一度「LINEで続き」ボタンを押してください。
             </p>
           </>

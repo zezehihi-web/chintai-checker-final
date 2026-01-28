@@ -16,7 +16,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="ja">
-      <body className="font-sans antialiased bg-[#02060D]">
+      <body className="font-sans antialiased bg-[#FAFAFA]">
         {children}
         <SpeedInsights />
         <Analytics />
