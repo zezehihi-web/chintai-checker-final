@@ -43,6 +43,7 @@ declare global {
       init: (config: { liffId: string }) => Promise<void>;
       isLoggedIn: () => boolean;
       getAccessToken: () => string | null;
+      login: () => void;
       sendMessages: (messages: unknown[]) => Promise<void>;
       closeWindow: () => void;
       getFriendship: () => Promise<{ friendFlag: boolean }>;
@@ -190,9 +191,10 @@ export default function LiffLinkPage() {
         console.log('Is logged in:', isLoggedIn);
         console.log('Access token exists:', !!accessTokenCheck);
 
-        // iOS対応: isLoggedInがfalseでもaccessTokenがあればログイン済みとみなす
+        // 未ログインの場合はログイン画面へ誘導（リダイレクト後は同じURLで戻るため処理が自動で再開される）
         if (!isLoggedIn && !accessTokenCheck) {
-          throw new Error('LINEにログインしていません');
+          window.liff.login();
+          return;
         }
 
         // 2. URLからcaseTokenとdiag_id取得
