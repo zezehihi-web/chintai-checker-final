@@ -1479,42 +1479,45 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* LINE友だち追加エリア - デバッグ用に赤背景 */}
-              <div className="mb-8">
-                {/* 
-                  ★★★ 重要: Universal Link対策 ★★★
-                  - 純粋な<a>タグのみ使用（onClick/JS実行禁止）
-                  - target="_blank"禁止（同一タブで遷移）
-                  - 内部要素を最小限にしてクリック判定を確保
-                  - z-index:9999で最前面に
-                */}
-                <a
-                  href="https://liff.line.me/2009006626-vnlJewF7"
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    backgroundColor: '#FF0000',
-                    color: '#FFFFFF',
-                    fontSize: '18px',
-                    fontWeight: 'bold',
-                    textAlign: 'center',
-                    padding: '20px 16px',
-                    borderRadius: '16px',
-                    textDecoration: 'none',
-                    position: 'relative',
-                    zIndex: 9999,
-                    cursor: 'pointer',
-                    WebkitTapHighlightColor: 'rgba(0,0,0,0.1)',
-                    touchAction: 'manipulation',
-                  }}
-                >
-                  【アプリ起動】LINEで結果を受け取る
-                </a>
-              </div>
-              
+              {/* LINE友だち追加エリア（本番用） */}
               <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
-                <div className="relative z-10"></div>
+                <div className="relative z-10">
+                  {/* LINE友だち追加ボタン — 純粋な<a>タグでUniversal Link有効化 */}
+                  <a
+                    href="https://liff.line.me/2009006626-vnlJewF7"
+                    className="block w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 no-underline"
+                    style={{
+                      boxShadow: '0 12px 36px rgba(6, 199, 85, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28)',
+                      position: 'relative',
+                      zIndex: 50,
+                      touchAction: 'manipulation',
+                    }}
+                  >
+                    <div className="flex items-center justify-center gap-4">
+                      <NextImage
+                        src="/line-logo.png"
+                        alt="LINEロゴ"
+                        width={44}
+                        height={44}
+                        className="flex-shrink-0 drop-shadow-md pointer-events-none"
+                      />
+                      {((result.discount_amount ?? calculateDiscountAmount(result.items)) > 0) ? (
+                        <div className="flex flex-col text-left leading-tight pointer-events-none" style={{ fontSize: '0.9em' }}>
+                          <span className="text-base md:text-lg font-bold text-white drop-shadow-md underline decoration-2 decoration-black underline-offset-[1px] inline-block">
+                            <span className="text-[#ff0000] font-extrabold text-lg md:text-xl">割引済み</span><span className="text-white">の見積もり</span>
+                          </span><span className="text-white text-base md:text-lg font-bold drop-shadow-md">を</span>
+                          <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col text-left leading-tight pointer-events-none" style={{ fontSize: '0.9em' }}>
+                          <span className="text-base md:text-lg font-bold text-white drop-shadow-md">詳細の見積りを</span>
+                          <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
+                        </div>
+                      )}
+                    </div>
+                  </a>
+                </div>
                 <div className="relative z-10 mt-6 pt-6 border-t border-slate-600">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 text-[10px] md:text-sm">
                     <div className="flex items-center gap-1 md:gap-2 group">
@@ -1880,34 +1883,45 @@ export default function Home() {
             })()}
           </div>
 
-          {/* LINE友だち追加エリア（2箇所目） - デバッグ用に赤背景 */}
-          <div className="mb-8">
-            <a
-              href="https://liff.line.me/2009006626-vnlJewF7"
-              style={{
-                display: 'block',
-                width: '100%',
-                backgroundColor: '#FF0000',
-                color: '#FFFFFF',
-                fontSize: '18px',
-                fontWeight: 'bold',
-                textAlign: 'center',
-                padding: '20px 16px',
-                borderRadius: '16px',
-                textDecoration: 'none',
-                position: 'relative',
-                zIndex: 9999,
-                cursor: 'pointer',
-                WebkitTapHighlightColor: 'rgba(0,0,0,0.1)',
-                touchAction: 'manipulation',
-              }}
-            >
-              【アプリ起動】LINEで結果を受け取る
-            </a>
-          </div>
-
+          {/* LINE友だち追加エリア（2箇所目・本番用） */}
           <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
              <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
+             <div className="relative z-10">
+               {/* LINE友だち追加ボタン — 純粋な<a>タグでUniversal Link有効化 */}
+               <a
+                 href="https://liff.line.me/2009006626-vnlJewF7"
+                 className="block w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 no-underline"
+                 style={{
+                   boxShadow: '0 12px 36px rgba(6, 199, 85, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28)',
+                   position: 'relative',
+                   zIndex: 50,
+                   touchAction: 'manipulation',
+                 }}
+               >
+                 <div className="flex items-center justify-center gap-4">
+                   <NextImage
+                     src="/line-logo.png"
+                     alt="LINEロゴ"
+                     width={44}
+                     height={44}
+                     className="flex-shrink-0 drop-shadow-md pointer-events-none"
+                   />
+                   {((result.discount_amount ?? calculateDiscountAmount(result.items)) > 0) ? (
+                     <div className="flex flex-col text-left leading-tight pointer-events-none" style={{ fontSize: '0.9em' }}>
+                       <span className="text-base md:text-lg font-bold text-white drop-shadow-md underline decoration-2 decoration-black underline-offset-[1px] inline-block">
+                         <span className="text-[#ff0000] font-extrabold text-lg md:text-xl">割引済み</span><span className="text-white">の見積もり</span>
+                       </span><span className="text-white text-base md:text-lg font-bold drop-shadow-md">を</span>
+                       <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
+                     </div>
+                   ) : (
+                     <div className="flex flex-col text-left leading-tight pointer-events-none" style={{ fontSize: '0.9em' }}>
+                       <span className="text-base md:text-lg font-bold text-white drop-shadow-md">詳細の見積りを</span>
+                       <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
+                     </div>
+                   )}
+                 </div>
+               </a>
+             </div>
              <div className="relative z-10 mt-6 pt-6 border-t border-slate-600">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 text-[10px] md:text-sm">
                   <div className="flex items-center gap-1 md:gap-2 group">
