@@ -1467,8 +1467,8 @@ export default function Home() {
                 <div className="relative z-10">
                   {/* LINE友だち追加ボタン — 純粋な<a>のみ。target 指定なし（同一タブ・iOS Universal Link） */}
                   <a
-                    href="https://liff.line.me/2009006626-vnlJewF7"
-                    className="block w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 no-underline"
+                    href="https://lin.ee/RSEtLGm"
+                    className="block w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 no-underline select-none cursor-pointer"
                     style={{
                       boxShadow: '0 12px 36px rgba(6, 199, 85, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28)',
                       position: 'relative',
@@ -1871,8 +1871,8 @@ export default function Home() {
              <div className="relative z-10">
                {/* LINE友だち追加ボタン — 純粋な<a>のみ。target 指定なし（同一タブ・iOS Universal Link） */}
                <a
-                 href="https://liff.line.me/2009006626-vnlJewF7"
-                 className="block w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 no-underline"
+                 href="https://lin.ee/RSEtLGm"
+                 className="block w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 no-underline select-none cursor-pointer"
                  style={{
                    boxShadow: '0 12px 36px rgba(6, 199, 85, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28)',
                    position: 'relative',
