@@ -571,21 +571,37 @@ export default function Home() {
   // 図面追加時の自動再診断フラグ
   const shouldAutoReanalyzeRef = useRef(false);
 
-  // ブラウザバック対策: sessionStorage から診断結果を復元
+  // ブラウザバック対策: sessionStorage から診断結果を復元（最優先実行）
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    
     const raw = sessionStorage.getItem(DIAGNOSIS_STORAGE_KEY);
-    if (!raw) return;
+    console.log('[復元チェック] sessionStorage キー:', DIAGNOSIS_STORAGE_KEY);
+    console.log('[復元チェック] 保存データ:', raw);
+    
+    if (!raw) {
+      console.log('[復元チェック] データなし - 新規診断モード');
+      return;
+    }
+    
     try {
       const parsed = JSON.parse(raw) as AnalysisResult;
+      console.log('[復元チェック] パース成功:', parsed);
+      
       if (parsed && typeof parsed === 'object' && Array.isArray(parsed.items)) {
+        console.log('[復元実行] 診断結果を復元します');
         setResult(parsed);
         setCurrentView('result');
+        console.log('[復元完了] 結果画面に切り替えました');
+      } else {
+        console.warn('[復元エラー] データ構造が不正:', parsed);
+        sessionStorage.removeItem(DIAGNOSIS_STORAGE_KEY);
       }
-    } catch {
+    } catch (error) {
+      console.error('[復元エラー] JSON パース失敗:', error);
       sessionStorage.removeItem(DIAGNOSIS_STORAGE_KEY);
     }
-  }, []);
+  }, []); // 依存配列を空にして、マウント時に1回だけ実行
 
   const handleFileChange = (file: File, target: UploadTarget) => {
       if (!file.type.startsWith('image/')) {
@@ -887,14 +903,16 @@ export default function Home() {
       setLoadingProgress(100);
       setLoadingStep("✨ 診断完了！");
       setTimeout(() => {
+        console.log('[診断完了] 結果を保存します:', data.result);
         setResult(data.result);
         setShareId(null);
         setIsLoading(false);
         setCurrentView("result");
         try {
           sessionStorage.setItem(DIAGNOSIS_STORAGE_KEY, JSON.stringify(data.result));
-        } catch {
-          // sessionStorage が使えない環境では無視
+          console.log('[保存完了] sessionStorage に保存しました');
+        } catch (error) {
+          console.error('[保存エラー] sessionStorage 保存失敗:', error);
         }
         window.scrollTo({ top: 0, behavior: 'instant' });
       }, 600);
@@ -918,10 +936,12 @@ export default function Home() {
   };
 
   const handleReset = () => {
+    console.log('[リセット] 診断データをクリアします');
     try {
       sessionStorage.removeItem(DIAGNOSIS_STORAGE_KEY);
-    } catch {
-      // 無視
+      console.log('[リセット完了] sessionStorage をクリアしました');
+    } catch (error) {
+      console.error('[リセットエラー]', error);
     }
     setEstimateFile(null);
     setPlanFile(null);
