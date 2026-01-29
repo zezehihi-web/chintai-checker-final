@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback, useEffect, useLayoutEffect } from "react";
 import NextImage from "next/image";
 
 // GA4イベント送信ヘルパー関数
@@ -554,7 +554,7 @@ export default function Home() {
   const [isCopied, setIsCopied] = useState(false);
   const [shareId, setShareId] = useState<string | null>(null);
   const [isCreatingShare, setIsCreatingShare] = useState(false);
-  const [isCreatingLineLink, setIsCreatingLineLink] = useState(false);
+  // 注: isCreatingLineLink は不要になりました（純粋な<a>タグ使用）
   
   // カメラ関連
   const [isCameraOpen, setIsCameraOpen] = useState(false);
@@ -571,35 +571,42 @@ export default function Home() {
   // 図面追加時の自動再診断フラグ
   const shouldAutoReanalyzeRef = useRef(false);
 
-  // ブラウザバック対策: sessionStorage から診断結果を復元（最優先実行）
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    
-    const raw = sessionStorage.getItem(DIAGNOSIS_STORAGE_KEY);
-    console.log('[復元チェック] sessionStorage キー:', DIAGNOSIS_STORAGE_KEY);
-    console.log('[復元チェック] 保存データ:', raw);
-    
-    if (!raw) {
-      console.log('[復元チェック] データなし - 新規診断モード');
-      return;
-    }
+  // ブラウザバック対策: sessionStorage から診断結果を復元（最優先・同期実行）
+  // useLayoutEffect で描画前に同期的に実行し、一瞬トップページが見えるのを防ぐ
+  const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+  
+  useIsomorphicLayoutEffect(() => {
+    console.log('[復元チェック] 復元処理開始');
     
     try {
+      const raw = sessionStorage.getItem(DIAGNOSIS_STORAGE_KEY);
+      console.log('[復元チェック] sessionStorage キー:', DIAGNOSIS_STORAGE_KEY);
+      console.log('[復元チェック] 保存データ:', raw ? `${raw.substring(0, 100)}...` : 'null');
+      
+      if (!raw) {
+        console.log('[復元チェック] データなし - 新規診断モード');
+        return;
+      }
+      
       const parsed = JSON.parse(raw) as AnalysisResult;
-      console.log('[復元チェック] パース成功:', parsed);
+      console.log('[復元チェック] パース成功');
       
       if (parsed && typeof parsed === 'object' && Array.isArray(parsed.items)) {
-        console.log('[復元実行] 診断結果を復元します');
+        console.log('[復元実行] 診断結果を復元します - items数:', parsed.items.length);
         setResult(parsed);
         setCurrentView('result');
         console.log('[復元完了] 結果画面に切り替えました');
       } else {
-        console.warn('[復元エラー] データ構造が不正:', parsed);
+        console.warn('[復元エラー] データ構造が不正');
         sessionStorage.removeItem(DIAGNOSIS_STORAGE_KEY);
       }
     } catch (error) {
-      console.error('[復元エラー] JSON パース失敗:', error);
-      sessionStorage.removeItem(DIAGNOSIS_STORAGE_KEY);
+      console.error('[復元エラー] 処理失敗:', error);
+      try {
+        sessionStorage.removeItem(DIAGNOSIS_STORAGE_KEY);
+      } catch {
+        // 無視
+      }
     }
   }, []); // 依存配列を空にして、マウント時に1回だけ実行
 
@@ -1134,39 +1141,7 @@ export default function Home() {
     }
   };
 
-  // LINE連携ハンドラー
-  const handleLineLink = async () => {
-    if (!result || isCreatingLineLink) return;
-    setIsCreatingLineLink(true);
-    try {
-      // 1. 案件作成＋caseToken発行
-      const res = await fetch('/api/case/create', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ result }),
-      });
-
-      if (!res.ok) throw new Error('案件の作成に失敗しました');
-
-      const { caseId, caseToken } = await res.json();
-
-      // 2. LIFF URLへ遷移（diag_idとcaseTokenを含める）
-      const liffId = process.env.NEXT_PUBLIC_LIFF_ID || '';
-      if (!liffId) {
-        alert('LINE連携が設定されていません。管理者にお問い合わせください。');
-        return;
-      }
-
-      // diag_id（caseId）とcaseTokenの両方を含める
-      const liffUrl = `https://liff.line.me/${liffId}?state=${caseToken}&diag_id=${caseId}`;
-      window.location.href = liffUrl;
-    } catch (error) {
-      console.error('LINE link creation error:', error);
-      alert('LINEとの連携に失敗しました');
-    } finally {
-      setIsCreatingLineLink(false);
-    }
-  };
+  // 注: LINE連携は純粋な<a>タグで実装（handleLineLink不要）
 
   return (
     <div className="min-h-dvh bg-white text-slate-800 font-sans pb-20 relative overflow-hidden">
@@ -1504,45 +1479,42 @@ export default function Home() {
                 </div>
               </div>
 
+              {/* LINE友だち追加エリア - デバッグ用に赤背景 */}
+              <div className="mb-8">
+                {/* 
+                  ★★★ 重要: Universal Link対策 ★★★
+                  - 純粋な<a>タグのみ使用（onClick/JS実行禁止）
+                  - target="_blank"禁止（同一タブで遷移）
+                  - 内部要素を最小限にしてクリック判定を確保
+                  - z-index:9999で最前面に
+                */}
+                <a
+                  href="https://liff.line.me/2009006626-vnlJewF7"
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    backgroundColor: '#FF0000',
+                    color: '#FFFFFF',
+                    fontSize: '18px',
+                    fontWeight: 'bold',
+                    textAlign: 'center',
+                    padding: '20px 16px',
+                    borderRadius: '16px',
+                    textDecoration: 'none',
+                    position: 'relative',
+                    zIndex: 9999,
+                    cursor: 'pointer',
+                    WebkitTapHighlightColor: 'rgba(0,0,0,0.1)',
+                    touchAction: 'manipulation',
+                  }}
+                >
+                  【アプリ起動】LINEで結果を受け取る
+                </a>
+              </div>
+              
               <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
-                <div className="relative z-10">
-                  {/* LINE友だち追加ボタン — 単純な<a>でUniversal Link有効化（target="_blank" 禁止） */}
-                  <a
-                    href="https://liff.line.me/2009006626-vnlJewF7"
-                    target="_self"
-                    className="relative w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden group active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 flex items-center justify-center no-underline"
-                    style={{
-                      boxShadow: '0 12px 36px rgba(6, 199, 85, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28)'
-                    }}
-                  >
-                    {/* シマー（約4秒おき） */}
-                    <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-20 animate-shine"></div>
-
-                    <div className="relative flex items-center justify-center gap-4">
-                      <NextImage
-                        src="/line-logo.png"
-                        alt="LINEロゴ"
-                        width={44}
-                        height={44}
-                        className="flex-shrink-0 drop-shadow-md"
-                      />
-                      {((result.discount_amount ?? calculateDiscountAmount(result.items)) > 0) ? (
-                        <div className="flex flex-col text-left leading-tight" style={{ fontSize: '0.9em' }}>
-                          <span className="text-base md:text-lg font-bold text-white drop-shadow-md underline decoration-2 decoration-black underline-offset-[1px] inline-block">
-                            <span className="text-[#ff0000] font-extrabold text-lg md:text-xl">割引済み</span><span className="text-white">の見積もり</span>
-                          </span><span className="text-white text-base md:text-lg font-bold drop-shadow-md">を</span>
-                          <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col text-left leading-tight" style={{ fontSize: '0.9em' }}>
-                          <span className="text-base md:text-lg font-bold text-white drop-shadow-md">詳細の見積りを</span>
-                          <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
-                        </div>
-                      )}
-                    </div>
-                  </a>
-                </div>
+                <div className="relative z-10"></div>
                 <div className="relative z-10 mt-6 pt-6 border-t border-slate-600">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 text-[10px] md:text-sm">
                     <div className="flex items-center gap-1 md:gap-2 group">
@@ -1908,44 +1880,34 @@ export default function Home() {
             })()}
           </div>
 
+          {/* LINE友だち追加エリア（2箇所目） - デバッグ用に赤背景 */}
+          <div className="mb-8">
+            <a
+              href="https://liff.line.me/2009006626-vnlJewF7"
+              style={{
+                display: 'block',
+                width: '100%',
+                backgroundColor: '#FF0000',
+                color: '#FFFFFF',
+                fontSize: '18px',
+                fontWeight: 'bold',
+                textAlign: 'center',
+                padding: '20px 16px',
+                borderRadius: '16px',
+                textDecoration: 'none',
+                position: 'relative',
+                zIndex: 9999,
+                cursor: 'pointer',
+                WebkitTapHighlightColor: 'rgba(0,0,0,0.1)',
+                touchAction: 'manipulation',
+              }}
+            >
+              【アプリ起動】LINEで結果を受け取る
+            </a>
+          </div>
+
           <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
              <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
-             <div className="relative z-10">
-               {/* LINE友だち追加ボタン — 単純な<a>でUniversal Link有効化（target="_blank" 禁止） */}
-               <a
-                 href="https://liff.line.me/2009006626-vnlJewF7"
-                 target="_self"
-                 className="relative w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden group active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 flex items-center justify-center no-underline"
-                 style={{
-                   boxShadow: '0 12px 36px rgba(6, 199, 85, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28)'
-                 }}
-               >
-                 <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-20 animate-shine"></div>
-
-                 <div className="relative flex items-center justify-center gap-4">
-                   <NextImage
-                     src="/line-logo.png"
-                     alt="LINEロゴ"
-                     width={44}
-                     height={44}
-                     className="flex-shrink-0 drop-shadow-md"
-                   />
-                   {((result.discount_amount ?? calculateDiscountAmount(result.items)) > 0) ? (
-                     <div className="flex flex-col text-left leading-tight" style={{ fontSize: '0.9em' }}>
-                       <span className="text-base md:text-lg font-bold text-white drop-shadow-md underline decoration-2 decoration-black underline-offset-[1px] inline-block">
-                         <span className="text-[#ff0000] font-extrabold text-lg md:text-xl">割引済み</span><span className="text-white">の見積もり</span>
-                       </span><span className="text-white text-base md:text-lg font-bold drop-shadow-md">を</span>
-                       <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
-                     </div>
-                   ) : (
-                     <div className="flex flex-col text-left leading-tight" style={{ fontSize: '0.9em' }}>
-                       <span className="text-base md:text-lg font-bold text-white drop-shadow-md">詳細の見積りを</span>
-                       <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
-                     </div>
-                   )}
-                 </div>
-               </a>
-             </div>
              <div className="relative z-10 mt-6 pt-6 border-t border-slate-600">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 text-[10px] md:text-sm">
                   <div className="flex items-center gap-1 md:gap-2 group">

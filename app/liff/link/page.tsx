@@ -170,7 +170,7 @@ export default function LiffLinkPage() {
     async function initLiff() {
       try {
         // 1. LIFF初期化
-        const liffId = process.env.NEXT_PUBLIC_LIFF_ID || '';
+        const liffId = process.env.NEXT_PUBLIC_LIFF_ID || '2009006626-vnlJewF7';
         if (!liffId) {
           throw new Error('LIFF IDが設定されていません');
         }

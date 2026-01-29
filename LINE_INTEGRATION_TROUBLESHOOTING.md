@@ -13,7 +13,7 @@ LINE連携機能の実装は完了していますが、**Webhookエンドポイ�
    - 環境変数は設定済み（ローカルとVercel）
 
 2. **LIFF設定**
-   - LIFF ID: `2008901046-GM21GYm9`
+   - LIFF ID: `2009006626-vnlJewF7`
    - エンドポイントURL: `https://chintai-matching-app.vercel.app/liff/link`
    - 環境変数: `NEXT_PUBLIC_LIFF_ID` 設定済み
 
@@ -33,7 +33,7 @@ LINE連携機能の実装は完了していますが、**Webhookエンドポイ�
      - `GEMINI_API_KEY`
      - `LINE_CHANNEL_SECRET`
      - `LINE_CHANNEL_ACCESS_TOKEN`
-     - `NEXT_PUBLIC_LIFF_ID=2008901046-GM21GYm9`
+     - `NEXT_PUBLIC_LIFF_ID=2009006626-vnlJewF7`
      - `KV_URL`, `KV_REST_API_URL`, `KV_REST_API_TOKEN`, `KV_REST_API_READ_ONLY_TOKEN`, `REDIS_URL`
 
 ## 現在の問題
@@ -195,7 +195,7 @@ LINE連携機能の実装は完了していますが、**Webhookエンドポイ�
 ### LINE設定情報
 - **Channel Secret**: `d21bddc9a72cb577f0da05ba5e1ad63e`
 - **Channel Access Token**: `1B4U03+sEFsaZiWdj96GdP9+56SjVN9Aau0pUgTrakKGqY7jCOh416Xk3wYHIa/zZkL8q5D8y1wfy3o4wh//1NwZhFIDmifw8n3/QamtYxhXw12lRjEDPlGyY6xG5ju7pkK4xpC8Bav90ZeoRtmLFAdB04t89/1O/w1cDnyilFU=`
-- **LIFF ID**: `2008901046-GM21GYm9`
+- **LIFF ID**: `2009006626-vnlJewF7`
 - **Webhook URL**: `https://chintai-matching-app.vercel.app/api/line/webhook`
 - **LIFF エンドポイントURL**: `https://chintai-matching-app.vercel.app/liff/link`
 
