@@ -86,7 +86,7 @@ type AnalysisResult = {
 
 type UploadTarget = "estimate" | "plan" | "condition";
 
-const DIAGNOSIS_STORAGE_KEY = 'chintai_diagnosis_result';
+const DIAGNOSIS_STORAGE_KEY = 'diagnosis_result';
 
 // --- 画像圧縮関数 ---
 const compressImage = async (file: File): Promise<File> => {
@@ -1507,9 +1507,9 @@ export default function Home() {
               <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
                 <div className="relative z-10">
-                  {/* LINE連携ボタン（CV）— 直接リンク・同一タブでユニバーサルリンク/アプリ起動を優先（target="_blank" 禁止） */}
+                  {/* LINE友だち追加ボタン — 単純な<a>でUniversal Link有効化（target="_blank" 禁止） */}
                   <a
-                    href={process.env.NEXT_PUBLIC_LIFF_URL || 'https://liff.line.me/2009006626-vnlJewF7'}
+                    href="https://liff.line.me/2009006626-vnlJewF7"
                     target="_self"
                     className="relative w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden group active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 flex items-center justify-center no-underline"
                     style={{
@@ -1911,9 +1911,9 @@ export default function Home() {
           <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
              <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
              <div className="relative z-10">
-               {/* LINE連携ボタン（CV）— 直接リンク・同一タブでユニバーサルリンク/アプリ起動を優先（target="_blank" 禁止） */}
+               {/* LINE友だち追加ボタン — 単純な<a>でUniversal Link有効化（target="_blank" 禁止） */}
                <a
-                 href={process.env.NEXT_PUBLIC_LIFF_URL || 'https://liff.line.me/2009006626-vnlJewF7'}
+                 href="https://liff.line.me/2009006626-vnlJewF7"
                  target="_self"
                  className="relative w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden group active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 flex items-center justify-center no-underline"
                  style={{
