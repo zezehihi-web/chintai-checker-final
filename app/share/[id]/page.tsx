@@ -678,7 +678,7 @@ export default function SharePage() {
       </div>
 
       <footer className="text-center text-slate-400 text-xs py-10">
-        © 2024 Smart Rent Check System
+        © 2026 Smart Rent Check System
       </footer>
     </div>
   );

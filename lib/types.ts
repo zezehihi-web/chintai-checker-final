@@ -161,7 +161,7 @@ export interface VerificationResult {
 // ====================================
 
 /** 診断項目のステータス */
-export type DiagnosisStatus = "fair" | "negotiable" | "cut" | "requires_confirmation";
+export type DiagnosisStatus = "fair" | "negotiable" | "cut" | "warning" | "requires_confirmation";
 
 /** 診断結果の項目 */
 export interface DiagnosisItem {
@@ -190,7 +190,11 @@ export interface DiagnosisResult {
   total_original: number;
   total_fair: number;
   discount_amount: number;
+  /** 要確認（黄）項目の請求金額合計 */
+  warning_amount?: number;
   pro_review: { content: string };
+  /** 判定ヘッドライン（総評エリア先頭に表示。条件に応じて null） */
+  headline: string | null;
   risk_score: number;
   
   // 追加のメタ情報
