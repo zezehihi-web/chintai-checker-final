@@ -1459,14 +1459,10 @@ export default function Home() {
               <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
                 <div className="relative z-10">
-                  {/* LINE連携ボタン（CV） */}
-                  <button 
-                    onClick={(e) => {
-                      trackButtonClick(e);
-                      handleLineLink();
-                    }} 
-                    disabled={isCreatingLineLink}
-                    className="relative w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5"
+                  {/* LINE連携ボタン（CV）— 直接リンクでSafari等でLINEアプリ起動を優先 */}
+                  <a
+                    href="https://liff.line.me/2009006626-vnlJewF7"
+                    className="relative w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden group active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 flex items-center justify-center no-underline"
                     style={{
                       boxShadow: '0 12px 36px rgba(6, 199, 85, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28)'
                     }}
@@ -1475,41 +1471,28 @@ export default function Home() {
                     <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-20 animate-shine"></div>
 
                     <div className="relative flex items-center justify-center gap-4">
-                      {/* 左側：LINE公式ロゴ */}
-                      {isCreatingLineLink ? (
-                        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-white/90 flex-shrink-0" />
-                      ) : (
-                        <NextImage
-                          src="/line-logo.png"
-                          alt="LINEロゴ"
-                          width={44}
-                          height={44}
-                          className="flex-shrink-0 drop-shadow-md"
-                        />
-                      )}
-
-                      {/* 右側：テキスト（2行） */}
-                      {isCreatingLineLink ? (
-                        <div className="text-xl md:text-2xl font-extrabold text-white drop-shadow-md">
-                          準備中...
+                      <NextImage
+                        src="/line-logo.png"
+                        alt="LINEロゴ"
+                        width={44}
+                        height={44}
+                        className="flex-shrink-0 drop-shadow-md"
+                      />
+                      {((result.discount_amount ?? calculateDiscountAmount(result.items)) > 0) ? (
+                        <div className="flex flex-col text-left leading-tight" style={{ fontSize: '0.9em' }}>
+                          <span className="text-base md:text-lg font-bold text-white drop-shadow-md underline decoration-2 decoration-black underline-offset-[1px] inline-block">
+                            <span className="text-[#ff0000] font-extrabold text-lg md:text-xl">割引済み</span><span className="text-white">の見積もり</span>
+                          </span><span className="text-white text-base md:text-lg font-bold drop-shadow-md">を</span>
+                          <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
                         </div>
                       ) : (
-                        ((result.discount_amount ?? calculateDiscountAmount(result.items)) > 0) ? (
-                          <div className="flex flex-col text-left leading-tight" style={{ fontSize: '0.9em' }}>
-                            <span className="text-base md:text-lg font-bold text-white drop-shadow-md underline decoration-2 decoration-black underline-offset-[1px] inline-block">
-                              <span className="text-[#ff0000] font-extrabold text-lg md:text-xl">割引済み</span><span className="text-white">の見積もり</span>
-                            </span><span className="text-white text-base md:text-lg font-bold drop-shadow-md">を</span>
-                            <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
-                          </div>
-                        ) : (
-                          <div className="flex flex-col text-left leading-tight" style={{ fontSize: '0.9em' }}>
-                            <span className="text-base md:text-lg font-bold text-white drop-shadow-md">詳細の見積りを</span>
-                            <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
-                          </div>
-                        )
+                        <div className="flex flex-col text-left leading-tight" style={{ fontSize: '0.9em' }}>
+                          <span className="text-base md:text-lg font-bold text-white drop-shadow-md">詳細の見積りを</span>
+                          <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
+                        </div>
                       )}
                     </div>
-                  </button>
+                  </a>
                 </div>
                 <div className="relative z-10 mt-6 pt-6 border-t border-slate-600">
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 text-[10px] md:text-sm">
@@ -1879,57 +1862,39 @@ export default function Home() {
           <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
              <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
              <div className="relative z-10">
-               {/* LINE連携ボタン（CV） */}
-               <button 
-                 onClick={(e) => {
-                   trackButtonClick(e);
-                   handleLineLink();
-                 }} 
-                 disabled={isCreatingLineLink}
-                 className="relative w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5"
+               {/* LINE連携ボタン（CV）— 直接リンクでSafari等でLINEアプリ起動を優先 */}
+               <a
+                 href="https://liff.line.me/2009006626-vnlJewF7"
+                 className="relative w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden group active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 flex items-center justify-center no-underline"
                  style={{
                    boxShadow: '0 12px 36px rgba(6, 199, 85, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28)'
                  }}
                >
-                 {/* シマー（約4秒おき） */}
                  <div className="pointer-events-none absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-white/70 to-transparent opacity-20 animate-shine"></div>
 
                  <div className="relative flex items-center justify-center gap-4">
-                   {/* 左側：LINE公式ロゴ */}
-                   {isCreatingLineLink ? (
-                     <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-white/90 flex-shrink-0" />
-                   ) : (
-                     <NextImage
-                       src="/line-logo.png"
-                       alt="LINEロゴ"
-                       width={44}
-                       height={44}
-                       className="flex-shrink-0 drop-shadow-md"
-                     />
-                   )}
-
-                   {/* 右側：テキスト（2行） */}
-                   {isCreatingLineLink ? (
-                     <div className="text-xl md:text-2xl font-extrabold text-white drop-shadow-md">
-                       準備中...
+                   <NextImage
+                     src="/line-logo.png"
+                     alt="LINEロゴ"
+                     width={44}
+                     height={44}
+                     className="flex-shrink-0 drop-shadow-md"
+                   />
+                   {((result.discount_amount ?? calculateDiscountAmount(result.items)) > 0) ? (
+                     <div className="flex flex-col text-left leading-tight" style={{ fontSize: '0.9em' }}>
+                       <span className="text-base md:text-lg font-bold text-white drop-shadow-md underline decoration-2 decoration-black underline-offset-[1px] inline-block">
+                         <span className="text-[#ff0000] font-extrabold text-lg md:text-xl">割引済み</span><span className="text-white">の見積もり</span>
+                       </span><span className="text-white text-base md:text-lg font-bold drop-shadow-md">を</span>
+                       <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
                      </div>
                    ) : (
-                     ((result.discount_amount ?? calculateDiscountAmount(result.items)) > 0) ? (
-                       <div className="flex flex-col text-left leading-tight" style={{ fontSize: '0.9em' }}>
-                         <span className="text-base md:text-lg font-bold text-white drop-shadow-md underline decoration-2 decoration-black underline-offset-[1px] inline-block">
-                           <span className="text-[#ff0000] font-extrabold text-lg md:text-xl">割引済み</span><span className="text-white">の見積もり</span>
-                         </span><span className="text-white text-base md:text-lg font-bold drop-shadow-md">を</span>
-                         <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
-                       </div>
-                     ) : (
-                       <div className="flex flex-col text-left leading-tight" style={{ fontSize: '0.9em' }}>
-                         <span className="text-base md:text-lg font-bold text-white drop-shadow-md">詳細の見積りを</span>
-                         <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
-                       </div>
-                     )
+                     <div className="flex flex-col text-left leading-tight" style={{ fontSize: '0.9em' }}>
+                       <span className="text-base md:text-lg font-bold text-white drop-shadow-md">詳細の見積りを</span>
+                       <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
+                     </div>
                    )}
                  </div>
-               </button>
+               </a>
              </div>
              <div className="relative z-10 mt-6 pt-6 border-t border-slate-600">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 text-[10px] md:text-sm">
