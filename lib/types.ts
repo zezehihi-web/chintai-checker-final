@@ -204,6 +204,14 @@ export interface DiagnosisResult {
   
   // デバッグ用
   extraction_log?: ExtractionLog;
+  /** ヘッドライン判定のデバッグ情報（APIレスポンスに含める） */
+  debug?: {
+    rent_extracted: number;
+    brokerage_amount: number;
+    ratio: number;
+    warning_count: number;
+    logic_path: string;
+  };
 }
 
 /** 抽出ログ（デバッグ用） */

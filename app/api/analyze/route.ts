@@ -1007,14 +1007,14 @@ Markdown記法は含めず、純粋なJSON文字列だけを返してくださ�
         // 家賃の取得（複数パターンで検索）
         let rentItem = json.items.find((item: any) => 
           item && item.name && 
-          /^家賃$|^賃料$|^月額賃料$|^月額家賃$/.test(String(item.name).trim())
+          /^家賃$|^賃料$|^月額賃料$|^月額家賃$|^月額$/.test(String(item.name).trim())
         );
-        // フォールバック: 「家賃」「賃料」を含み、前家賃・日割りを除外
+        // フォールバック: 「家賃」「賃料」「月額」を含み、前家賃・日割りを除外
         if (!rentItem) {
           rentItem = json.items.find((item: any) => 
             item && item.name && 
-            /家賃|賃料/.test(String(item.name)) && 
-            !/前家賃|翌月|日割|共益|管理/.test(String(item.name))
+            /家賃|賃料|月額/.test(String(item.name)) && 
+            !/前家賃|翌月|日割|共益|管理費|手数料/.test(String(item.name))
           );
         }
         const rent = rentItem ? toNum(rentItem.price_original) : 0;
@@ -1136,25 +1136,43 @@ Markdown記法は含めず、純粋なJSON文字列だけを返してくださ�
         json.total_fair = Math.max(0, totalOriginal - discountAmount);
         json.total_original = totalOriginal;
 
-        // ========== Step 4: 判定ヘッドライン（家賃・仲介手数料・要確認数から算出） ==========
-        // 注: rentItem と rent は Step 0 で定義済み
-        const warningCount = json.items.filter((item: any) => item && item.status === 'warning').length;
+        // ========== Step 4: 判定ヘッドライン（家賃・仲介手数料・要確認数から算出）とデバッグ情報 ==========
+        // 注: rent と brokerageIndex は Step 0 で定義済み
+        const warningCount = json.items.filter((item: any) => item && (item.status === 'warning' || item.status === 'WARNING')).length;
         const brokerageItemForHeadline = brokerageIndex >= 0 ? json.items[brokerageIndex] : null;
-        const brokerage = brokerageItemForHeadline ? toNum(brokerageItemForHeadline.price_original) : 0;
-        if (rent > 0) {
-          const ratio = brokerage / rent;
-          if (ratio >= 1.0 && warningCount >= 5) {
-            json.headline = "大幅に削減可能な可能性が高いです";
-          } else if (ratio >= 0.6) {
-            json.headline = "削減できる可能性が非常に高いです";
-          } else if (ratio <= 0.55 && warningCount <= 3) {
-            json.headline = "適正な範囲であると言えます";
-          } else {
-            json.headline = null;
+        const brokerageAmount = brokerageItemForHeadline ? toNum(brokerageItemForHeadline.price_original) : 0;
+        const rentVal = rent || 0;
+        let headline: string | null = null;
+        let ratio = 0;
+        let logicPath = 'None';
+        if (rentVal > 0) {
+          ratio = brokerageAmount / rentVal;
+          // 【判定A】仲介手数料が家賃の1.0ヶ月分(0.95以上) かつ 要確認項目が5つ以上
+          if (ratio >= 0.95 && warningCount >= 5) {
+            headline = "大幅に削減可能な可能性が高いです";
+            logicPath = 'Condition A (High Reduction)';
+          }
+          // 【判定B】仲介手数料が家賃の0.55ヶ月分以上（判定A以外）
+          else if (ratio >= 0.55) {
+            headline = "削減できる可能性が非常に高いです";
+            logicPath = 'Condition B (Likely Reduction)';
+          }
+          // 【判定C】仲介手数料が家賃の0.55ヶ月分以下 かつ 要確認項目が3つ以下
+          else if (ratio <= 0.55 && warningCount <= 3) {
+            headline = "適正な範囲であると言えます";
+            logicPath = 'Condition C (Fair)';
           }
         } else {
-          json.headline = null;
+          logicPath = 'Error: Rent is 0';
         }
+        json.headline = headline;
+        json.debug = {
+          rent_extracted: rentVal,
+          brokerage_amount: brokerageAmount,
+          ratio: Math.round(ratio * 100) / 100,
+          warning_count: warningCount,
+          logic_path: logicPath
+        };
 
         console.log("金額再計算:", {
           discount_amount: json.discount_amount,
@@ -1172,6 +1190,22 @@ Markdown記法は含めず、純粋なJSON文字列だけを返してくださ�
     // headline が未設定の場合は null をセット（型: string | null を保証）
     if (json.headline === undefined) {
       json.headline = null;
+    }
+    // debug が未設定の場合（try がスキップされた場合など）は簡易デバッグ情報をセット
+    if (json.debug === undefined && json.items && Array.isArray(json.items)) {
+      const toNumFallback = (v: any) => typeof v === 'number' ? v : (typeof v === 'string' ? parseFloat(v) || 0 : 0);
+      const wc = json.items.filter((i: any) => i && (i.status === 'warning' || i.status === 'WARNING')).length;
+      const bi = json.items.findIndex((i: any) => i && i.name && /仲介/.test(String(i.name)));
+      const rentItem = json.items.find((i: any) => i && i.name && /家賃|賃料|月額/.test(String(i.name)) && !/前家賃|翌月|日割|共益|管理費|手数料/.test(String(i.name)));
+      const r = rentItem ? toNumFallback(rentItem.price_original) : 0;
+      const b = bi >= 0 ? toNumFallback(json.items[bi].price_original) : 0;
+      json.debug = {
+        rent_extracted: r,
+        brokerage_amount: b,
+        ratio: r > 0 ? Math.round((b / r) * 100) / 100 : 0,
+        warning_count: wc,
+        logic_path: r === 0 ? 'Error: Rent is 0' : 'None'
+      };
     }
 
     console.log("診断完了:", {

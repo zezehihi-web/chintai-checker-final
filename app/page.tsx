@@ -52,6 +52,13 @@ type AnalysisResult = {
   pro_review: { content: string; };
   headline: string | null;
   risk_score: number;
+  debug?: {
+    rent_extracted: number;
+    brokerage_amount: number;
+    ratio: number;
+    warning_count: number;
+    logic_path: string;
+  };
   has_unconfirmed_items?: boolean;
   unconfirmed_item_names?: string[];
   extraction_quality?: 'high' | 'medium' | 'low';
@@ -1484,14 +1491,14 @@ export default function Home() {
                         </div>
                       ) : (
                         ((result.discount_amount ?? calculateDiscountAmount(result.items)) > 0) ? (
-                          <div className="flex flex-col text-left leading-tight">
+                          <div className="flex flex-col text-left leading-tight" style={{ fontSize: '0.9em' }}>
                             <span className="text-base md:text-lg font-bold text-white drop-shadow-md underline decoration-2 decoration-black underline-offset-[1px] inline-block">
                               <span className="text-[#ff0000] font-extrabold text-lg md:text-xl">割引済み</span><span className="text-white">の見積もり</span>
                             </span><span className="text-white text-base md:text-lg font-bold drop-shadow-md">を</span>
                             <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
                           </div>
                         ) : (
-                          <div className="flex flex-col text-left leading-tight">
+                          <div className="flex flex-col text-left leading-tight" style={{ fontSize: '0.9em' }}>
                             <span className="text-base md:text-lg font-bold text-white drop-shadow-md">詳細の見積りを</span>
                             <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
                           </div>
@@ -1779,8 +1786,10 @@ export default function Home() {
 
           <div className="bg-white border-2 border-gray-200 rounded-xl p-5 text-slate-700 text-sm leading-relaxed mb-8 animate-fade-in-up shadow-sm" style={{ animationDelay: '0.3s' }}>
             <h3 className="font-bold text-blue-600 mb-3 flex items-center gap-2">🤖 AIエージェントの総評</h3>
-            {result.headline && (
-              <p className="font-bold text-slate-800 mb-2" style={{ fontSize: '1.1em' }}>{result.headline}</p>
+            {result.headline != null && result.headline !== '' && (
+              <div className="mb-3">
+                <p className="text-xl font-bold text-slate-800 leading-snug">{result.headline}</p>
+              </div>
             )}
             {(() => {
               let content = result.pro_review.content.trim();
@@ -1902,14 +1911,14 @@ export default function Home() {
                      </div>
                    ) : (
                      ((result.discount_amount ?? calculateDiscountAmount(result.items)) > 0) ? (
-                       <div className="flex flex-col text-left leading-tight">
+                       <div className="flex flex-col text-left leading-tight" style={{ fontSize: '0.9em' }}>
                          <span className="text-base md:text-lg font-bold text-white drop-shadow-md underline decoration-2 decoration-black underline-offset-[1px] inline-block">
                            <span className="text-[#ff0000] font-extrabold text-lg md:text-xl">割引済み</span><span className="text-white">の見積もり</span>
                          </span><span className="text-white text-base md:text-lg font-bold drop-shadow-md">を</span>
                          <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
                        </div>
                      ) : (
-                       <div className="flex flex-col text-left leading-tight">
+                       <div className="flex flex-col text-left leading-tight" style={{ fontSize: '0.9em' }}>
                          <span className="text-base md:text-lg font-bold text-white drop-shadow-md">詳細の見積りを</span>
                          <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
                        </div>
