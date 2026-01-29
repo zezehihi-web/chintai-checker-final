@@ -1459,9 +1459,9 @@ export default function Home() {
               <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
                 <div className="relative z-10">
-                  {/* LINE連携ボタン（CV）— 直接リンクでSafari等でLINEアプリ起動を優先 */}
+                  {/* LINE連携ボタン（CV）— 直接リンクでユニバーサルリンク/アプリ起動を優先 */}
                   <a
-                    href="https://liff.line.me/2009006626-vnlJewF7"
+                    href={process.env.NEXT_PUBLIC_LIFF_URL || 'https://liff.line.me/2009006626-vnlJewF7'}
                     className="relative w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden group active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 flex items-center justify-center no-underline"
                     style={{
                       boxShadow: '0 12px 36px rgba(6, 199, 85, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28)'
@@ -1862,9 +1862,9 @@ export default function Home() {
           <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
              <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
              <div className="relative z-10">
-               {/* LINE連携ボタン（CV）— 直接リンクでSafari等でLINEアプリ起動を優先 */}
+               {/* LINE連携ボタン（CV）— 直接リンクでユニバーサルリンク/アプリ起動を優先 */}
                <a
-                 href="https://liff.line.me/2009006626-vnlJewF7"
+                 href={process.env.NEXT_PUBLIC_LIFF_URL || 'https://liff.line.me/2009006626-vnlJewF7'}
                  className="relative w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden group active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 flex items-center justify-center no-underline"
                  style={{
                    boxShadow: '0 12px 36px rgba(6, 199, 85, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28)'
