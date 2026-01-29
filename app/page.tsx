@@ -1503,14 +1503,14 @@ export default function Home() {
                         className="flex-shrink-0 drop-shadow-md pointer-events-none"
                       />
                       {((result.discount_amount ?? calculateDiscountAmount(result.items)) > 0) ? (
-                        <div className="flex flex-col text-left leading-tight pointer-events-none" style={{ fontSize: '0.9em' }}>
+                        <div className="flex flex-col text-left leading-tight pointer-events-none" style={{ fontSize: '0.81em' }}>
                           <span className="text-base md:text-lg font-bold text-white drop-shadow-md underline decoration-2 decoration-black underline-offset-[1px] inline-block">
                             <span className="text-[#ff0000] font-extrabold text-lg md:text-xl">割引済み</span><span className="text-white">の見積もり</span>
                           </span><span className="text-white text-base md:text-lg font-bold drop-shadow-md">を</span>
                           <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
                         </div>
                       ) : (
-                        <div className="flex flex-col text-left leading-tight pointer-events-none" style={{ fontSize: '0.9em' }}>
+                        <div className="flex flex-col text-left leading-tight pointer-events-none" style={{ fontSize: '0.81em' }}>
                           <span className="text-base md:text-lg font-bold text-white drop-shadow-md">詳細の見積りを</span>
                           <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
                         </div>
@@ -1907,14 +1907,14 @@ export default function Home() {
                      className="flex-shrink-0 drop-shadow-md pointer-events-none"
                    />
                    {((result.discount_amount ?? calculateDiscountAmount(result.items)) > 0) ? (
-                     <div className="flex flex-col text-left leading-tight pointer-events-none" style={{ fontSize: '0.9em' }}>
+                     <div className="flex flex-col text-left leading-tight pointer-events-none" style={{ fontSize: '0.81em' }}>
                        <span className="text-base md:text-lg font-bold text-white drop-shadow-md underline decoration-2 decoration-black underline-offset-[1px] inline-block">
                          <span className="text-[#ff0000] font-extrabold text-lg md:text-xl">割引済み</span><span className="text-white">の見積もり</span>
                        </span><span className="text-white text-base md:text-lg font-bold drop-shadow-md">を</span>
                        <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
                      </div>
                    ) : (
-                     <div className="flex flex-col text-left leading-tight pointer-events-none" style={{ fontSize: '0.9em' }}>
+                     <div className="flex flex-col text-left leading-tight pointer-events-none" style={{ fontSize: '0.81em' }}>
                        <span className="text-base md:text-lg font-bold text-white drop-shadow-md">詳細の見積りを</span>
                        <span className="text-lg md:text-xl font-extrabold text-white drop-shadow-md">無料で確認する</span>
                      </div>
