@@ -571,44 +571,30 @@ export default function Home() {
   // 図面追加時の自動再診断フラグ
   const shouldAutoReanalyzeRef = useRef(false);
 
-  // ブラウザバック対策: sessionStorage から診断結果を復元（最優先・同期実行）
-  // useLayoutEffect で描画前に同期的に実行し、一瞬トップページが見えるのを防ぐ
+  // ブラウザバック対策: sessionStorage から診断結果を復元（本番仕様）
+  // useLayoutEffect で描画前に同期的に実行し、トップ画面のチラつきを防ぐ
   const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
-  
+
   useIsomorphicLayoutEffect(() => {
-    console.log('[復元チェック] 復元処理開始');
-    
     try {
       const raw = sessionStorage.getItem(DIAGNOSIS_STORAGE_KEY);
-      console.log('[復元チェック] sessionStorage キー:', DIAGNOSIS_STORAGE_KEY);
-      console.log('[復元チェック] 保存データ:', raw ? `${raw.substring(0, 100)}...` : 'null');
-      
-      if (!raw) {
-        console.log('[復元チェック] データなし - 新規診断モード');
-        return;
-      }
-      
+      if (!raw) return;
+
       const parsed = JSON.parse(raw) as AnalysisResult;
-      console.log('[復元チェック] パース成功');
-      
       if (parsed && typeof parsed === 'object' && Array.isArray(parsed.items)) {
-        console.log('[復元実行] 診断結果を復元します - items数:', parsed.items.length);
         setResult(parsed);
         setCurrentView('result');
-        console.log('[復元完了] 結果画面に切り替えました');
       } else {
-        console.warn('[復元エラー] データ構造が不正');
         sessionStorage.removeItem(DIAGNOSIS_STORAGE_KEY);
       }
-    } catch (error) {
-      console.error('[復元エラー] 処理失敗:', error);
+    } catch {
       try {
         sessionStorage.removeItem(DIAGNOSIS_STORAGE_KEY);
       } catch {
         // 無視
       }
     }
-  }, []); // 依存配列を空にして、マウント時に1回だけ実行
+  }, []);
 
   const handleFileChange = (file: File, target: UploadTarget) => {
       if (!file.type.startsWith('image/')) {
@@ -910,16 +896,14 @@ export default function Home() {
       setLoadingProgress(100);
       setLoadingStep("✨ 診断完了！");
       setTimeout(() => {
-        console.log('[診断完了] 結果を保存します:', data.result);
         setResult(data.result);
         setShareId(null);
         setIsLoading(false);
         setCurrentView("result");
         try {
           sessionStorage.setItem(DIAGNOSIS_STORAGE_KEY, JSON.stringify(data.result));
-          console.log('[保存完了] sessionStorage に保存しました');
-        } catch (error) {
-          console.error('[保存エラー] sessionStorage 保存失敗:', error);
+        } catch {
+          // sessionStorage が使えない環境では無視
         }
         window.scrollTo({ top: 0, behavior: 'instant' });
       }, 600);
@@ -943,12 +927,10 @@ export default function Home() {
   };
 
   const handleReset = () => {
-    console.log('[リセット] 診断データをクリアします');
     try {
       sessionStorage.removeItem(DIAGNOSIS_STORAGE_KEY);
-      console.log('[リセット完了] sessionStorage をクリアしました');
-    } catch (error) {
-      console.error('[リセットエラー]', error);
+    } catch {
+      // 無視
     }
     setEstimateFile(null);
     setPlanFile(null);
@@ -1483,7 +1465,7 @@ export default function Home() {
               <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
                 <div className="relative z-10">
-                  {/* LINE友だち追加ボタン — 純粋な<a>タグでUniversal Link有効化 */}
+                  {/* LINE友だち追加ボタン — 純粋な<a>のみ。target 指定なし（同一タブ・iOS Universal Link） */}
                   <a
                     href="https://liff.line.me/2009006626-vnlJewF7"
                     className="block w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 no-underline"
@@ -1887,7 +1869,7 @@ export default function Home() {
           <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
              <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
              <div className="relative z-10">
-               {/* LINE友だち追加ボタン — 純粋な<a>タグでUniversal Link有効化 */}
+               {/* LINE友だち追加ボタン — 純粋な<a>のみ。target 指定なし（同一タブ・iOS Universal Link） */}
                <a
                  href="https://liff.line.me/2009006626-vnlJewF7"
                  className="block w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 no-underline"
