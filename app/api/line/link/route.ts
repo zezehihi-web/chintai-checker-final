@@ -113,7 +113,7 @@ export async function POST(req: Request) {
             success: true,
             caseId,
             requires_friend_add: true,
-            friend_add_url: process.env.NEXT_PUBLIC_LINE_URL || 'https://lin.ee/Hnl9hkO',
+            friend_add_url: process.env.NEXT_PUBLIC_LINE_URL || 'https://lin.ee/RSEtLGm',
             message: '友だち追加が必要です。友だち追加後、もう一度お試しください。'
           });
         } else {
@@ -239,7 +239,7 @@ export async function POST(req: Request) {
           success: true,
           caseId,
           requires_friend_add: true,
-          friend_add_url: process.env.NEXT_PUBLIC_LINE_URL || 'https://lin.ee/Hnl9hkO',
+          friend_add_url: process.env.NEXT_PUBLIC_LINE_URL || 'https://lin.ee/RSEtLGm',
           message: '友だち追加が必要です。友だち追加後、もう一度お試しください。'
         });
       }

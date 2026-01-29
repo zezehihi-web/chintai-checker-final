@@ -169,7 +169,10 @@ export default function LiffLinkPage() {
     async function initLiff() {
       try {
         // 1. LIFF初期化
-        const liffId = '2008901046-GM21GYm9';
+        const liffId = process.env.NEXT_PUBLIC_LIFF_ID || '';
+        if (!liffId) {
+          throw new Error('LIFF IDが設定されていません');
+        }
         console.log('LIFF ID:', liffId);
 
         console.log('Initializing LIFF with ID:', liffId);
@@ -314,8 +317,9 @@ export default function LiffLinkPage() {
             <button
               onClick={(e) => {
                 trackButtonClick(e);
+                const lineUrl = process.env.NEXT_PUBLIC_LINE_URL || 'https://lin.ee/RSEtLGm';
                 window.liff.openWindow({
-                  url: 'https://lin.ee/Hnl9hkO',
+                  url: lineUrl,
                   external: true
                 });
               }}
