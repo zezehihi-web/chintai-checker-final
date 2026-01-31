@@ -554,6 +554,7 @@ export default function Home() {
   const [isCopied, setIsCopied] = useState(false);
   const [shareId, setShareId] = useState<string | null>(null);
   const [isCreatingShare, setIsCreatingShare] = useState(false);
+  const [caseId, setCaseId] = useState<string | null>(null);
   // 注: isCreatingLineLink は不要になりました（純粋な<a>タグ使用）
   
   // カメラ関連
@@ -571,7 +572,7 @@ export default function Home() {
   // 図面追加時の自動再診断フラグ
   const shouldAutoReanalyzeRef = useRef(false);
 
-  // ブラウザバック対策: sessionStorage から診断結果を復元（本番仕様）
+  // ブラウザバック対策: sessionStorage から診断結果とcase_idを復元（本番仕様）
   // useLayoutEffect で描画前に同期的に実行し、トップ画面のチラつきを防ぐ
   const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
@@ -584,12 +585,17 @@ export default function Home() {
       if (parsed && typeof parsed === 'object' && Array.isArray(parsed.items)) {
         setResult(parsed);
         setCurrentView('result');
+        
+        // case_idも復元
+        const savedCaseId = sessionStorage.getItem('diagnosis_case_id');
+        if (savedCaseId) setCaseId(savedCaseId);
       } else {
         sessionStorage.removeItem(DIAGNOSIS_STORAGE_KEY);
       }
     } catch {
       try {
         sessionStorage.removeItem(DIAGNOSIS_STORAGE_KEY);
+        sessionStorage.removeItem('diagnosis_case_id');
       } catch {
         // 無視
       }
@@ -895,13 +901,25 @@ export default function Home() {
 
       setLoadingProgress(100);
       setLoadingStep("✨ 診断完了！");
-      setTimeout(() => {
+      setTimeout(async () => {
         setResult(data.result);
         setShareId(null);
         setIsLoading(false);
         setCurrentView("result");
         try {
           sessionStorage.setItem(DIAGNOSIS_STORAGE_KEY, JSON.stringify(data.result));
+          
+          // 案件作成してcase_idを取得
+          const caseRes = await fetch('/api/case/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ result: data.result }),
+          });
+          if (caseRes.ok) {
+            const { caseId: id } = await caseRes.json();
+            setCaseId(id);
+            sessionStorage.setItem('diagnosis_case_id', id);
+          }
         } catch {
           // sessionStorage が使えない環境では無視
         }
@@ -929,6 +947,7 @@ export default function Home() {
   const handleReset = () => {
     try {
       sessionStorage.removeItem(DIAGNOSIS_STORAGE_KEY);
+      sessionStorage.removeItem('diagnosis_case_id');
     } catch {
       // 無視
     }
@@ -939,6 +958,7 @@ export default function Home() {
     setPlanPreview(null);
     setConditionPreview(null);
     setResult(null);
+    setCaseId(null);
     setCurrentView("top");
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
@@ -1465,9 +1485,9 @@ export default function Home() {
               <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
                 <div className="relative z-10">
-                  {/* LINE友だち追加ボタン — 純粋な<a>のみ。target 指定なし（同一タブ・iOS Universal Link） */}
+                  {/* LINE友だち追加ボタン — case_idがあればLIFF経由で物件情報を引き継ぎ */}
                   <a
-                    href="https://lin.ee/RSEtLGm"
+                    href={caseId ? `https://liff.line.me/2009006626-vnlJewF7?state=${caseId}` : 'https://lin.ee/RSEtLGm'}
                     className="block w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 no-underline select-none cursor-pointer"
                     style={{
                       boxShadow: '0 12px 36px rgba(6, 199, 85, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28)',
@@ -1869,9 +1889,9 @@ export default function Home() {
           <div className="bg-slate-800/80 backdrop-blur-sm border border-slate-700 rounded-3xl p-6 shadow-xl mb-8 relative overflow-hidden animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
              <div className="absolute top-0 right-0 w-32 h-32 bg-green-500/10 rounded-full blur-3xl opacity-50 -translate-y-1/2 translate-x-1/2"></div>
              <div className="relative z-10">
-               {/* LINE友だち追加ボタン — 純粋な<a>のみ。target 指定なし（同一タブ・iOS Universal Link） */}
+               {/* LINE友だち追加ボタン — case_idがあればLIFF経由で物件情報を引き継ぎ */}
                <a
-                 href="https://lin.ee/RSEtLGm"
+                 href={caseId ? `https://liff.line.me/2009006626-vnlJewF7?state=${caseId}` : 'https://lin.ee/RSEtLGm'}
                  className="block w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 no-underline select-none cursor-pointer"
                  style={{
                    boxShadow: '0 12px 36px rgba(6, 199, 85, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28)',
