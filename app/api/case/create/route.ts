@@ -27,11 +27,15 @@ export async function POST(req: Request) {
     const caseId = await createCase(result);
 
     // 2. caseTokenを発行（10分TTL）
-    const caseToken = await createCaseToken(caseId);
+    let caseToken = await createCaseToken(caseId);
+    if (!caseToken) {
+      caseToken = await createCaseToken(caseId);
+    }
 
     return NextResponse.json({
       caseId,
       caseToken,
+      token: caseToken,
     });
   } catch (error: any) {
     console.error('Case creation error:', error);
