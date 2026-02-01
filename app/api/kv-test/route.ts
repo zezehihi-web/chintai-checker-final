@@ -4,16 +4,14 @@
  */
 
 import { NextResponse } from 'next/server';
+import { getKvClient, getKvProvider } from '@/lib/kv';
 
 export async function GET() {
   try {
-    // NOTE: @vercel/kv が未インストールでもビルド/起動できるようにする
-    // eslint-disable-next-line no-eval
-    const req = (0, eval)('require') as NodeRequire;
-    const mod = req('@vercel/kv') as { kv?: any };
-    const kv = mod?.kv;
-    if (!kv) {
-      throw new Error('@vercel/kv が見つかりません。`npm install` を実行してください。');
+    const kv = await getKvClient();
+    const provider = getKvProvider() || 'unknown';
+    if (provider === 'memory') {
+      throw new Error('外部KVが設定されていないため、メモリKVが使われています。');
     }
 
     // テスト用のキーで読み書き
@@ -29,6 +27,7 @@ export async function GET() {
       testValue,
       retrieved,
       connection: 'success',
+      provider,
     });
   } catch (error: any) {
     console.error('KV Test Error:', error);

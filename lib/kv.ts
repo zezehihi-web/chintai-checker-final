@@ -14,6 +14,8 @@ type KvClient = {
   ttl: (key: string) => Promise<number>;
 };
 
+type KvProvider = "vercel-kv" | "upstash-redis" | "memory";
+
 type MemoryEntry = { value: unknown; expiresAtMs: number | null };
 
 function createMemoryKv(): KvClient {
@@ -59,23 +61,76 @@ function createMemoryKv(): KvClient {
 }
 
 let kvClientSingleton: KvClient | null = null;
+let kvProviderSingleton: KvProvider | null = null;
 
 async function getKv(): Promise<KvClient> {
   if (kvClientSingleton) return kvClientSingleton;
 
   try {
-    // NOTE: @vercel/kv が未インストールでもUIを起動できるようにする（ローカル開発用フォールバック）
-    // bundler解決を避けるため eval(require) を使う
-    const req = (0, eval)("require") as NodeRequire; // eslint-disable-line no-eval
-    const mod = req("@vercel/kv") as { kv?: KvClient };
-    if (!mod?.kv) throw new Error("`@vercel/kv` loaded but `kv` export missing");
-    kvClientSingleton = mod.kv;
-    return kvClientSingleton;
+    const hasVercelEnv = !!process.env.KV_REST_API_URL || !!process.env.KV_URL;
+    if (hasVercelEnv) {
+      // NOTE: @vercel/kv が未インストールでもUIを起動できるようにする（ローカル開発用フォールバック）
+      // bundler解決を避けるため eval(require) を使う
+      const req = (0, eval)("require") as NodeRequire; // eslint-disable-line no-eval
+      const mod = req("@vercel/kv") as { kv?: KvClient };
+      if (!mod?.kv) throw new Error("`@vercel/kv` loaded but `kv` export missing");
+      kvClientSingleton = mod.kv;
+      kvProviderSingleton = "vercel-kv";
+      return kvClientSingleton;
+    }
   } catch (e) {
-    console.warn("[kv] @vercel/kv が見つからないためメモリKVで代替します（再起動で消えます）", e);
-    kvClientSingleton = createMemoryKv();
-    return kvClientSingleton;
+    console.warn("[kv] @vercel/kv の初期化に失敗しました", e);
   }
+
+  try {
+    const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
+    const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+    if (upstashUrl && upstashToken) {
+      // bundler解決を避けるため eval(require) を使う
+      const req = (0, eval)("require") as NodeRequire; // eslint-disable-line no-eval
+      const { Redis } = req("@upstash/redis") as { Redis: any };
+      const redis = new Redis({ url: upstashUrl, token: upstashToken });
+      kvClientSingleton = {
+        async get<T = unknown>(key: string) {
+          const value = await redis.get<T>(key);
+          return value ?? null;
+        },
+        async set(key: string, value: unknown) {
+          await redis.set(key, value);
+          return "OK";
+        },
+        async del(key: string) {
+          const res = await redis.del(key);
+          return typeof res === "number" ? res : 0;
+        },
+        async setex(key: string, ttlSeconds: number, value: unknown) {
+          await redis.set(key, value, { ex: ttlSeconds });
+          return "OK";
+        },
+        async ttl(key: string) {
+          const res = await redis.ttl(key);
+          return typeof res === "number" ? res : -2;
+        },
+      };
+      kvProviderSingleton = "upstash-redis";
+      return kvClientSingleton;
+    }
+  } catch (e) {
+    console.warn("[kv] @upstash/redis の初期化に失敗しました", e);
+  }
+
+  console.warn("[kv] 外部KVが設定されていないためメモリKVで代替します（再起動で消えます）");
+  kvClientSingleton = createMemoryKv();
+  kvProviderSingleton = "memory";
+  return kvClientSingleton;
+}
+
+export async function getKvClient(): Promise<KvClient> {
+  return await getKv();
+}
+
+export function getKvProvider(): KvProvider | null {
+  return kvProviderSingleton;
 }
 
 // 型定義
