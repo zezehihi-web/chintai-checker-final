@@ -14,7 +14,7 @@ type KvClient = {
   ttl: (key: string) => Promise<number>;
 };
 
-type KvProvider = "vercel-kv" | "upstash-redis" | "memory";
+type KvProvider = "upstash-rest" | "memory";
 
 type MemoryEntry = { value: unknown; expiresAtMs: number | null };
 
@@ -67,51 +67,65 @@ async function getKv(): Promise<KvClient> {
   if (kvClientSingleton) return kvClientSingleton;
 
   try {
-    const hasVercelEnv = !!process.env.KV_REST_API_URL || !!process.env.KV_URL;
-    if (hasVercelEnv) {
-      const mod = (await import("@vercel/kv")) as { kv?: KvClient };
-      if (!mod?.kv) throw new Error("`@vercel/kv` loaded but `kv` export missing");
-      kvClientSingleton = mod.kv;
-      kvProviderSingleton = "vercel-kv";
-      return kvClientSingleton;
-    }
-  } catch (e) {
-    console.warn("[kv] @vercel/kv の初期化に失敗しました", e);
-  }
+    const restUrl =
+      process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+    const restToken =
+      process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+    if (restUrl && restToken) {
+      const command = async <T = unknown>(cmd: string, ...args: Array<string | number>) => {
+        const res = await fetch(restUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${restToken}`,
+          },
+          body: JSON.stringify([cmd, ...args]),
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(`Upstash REST error: ${res.status} ${text}`);
+        }
+        const data = await res.json() as { result?: T; error?: string };
+        if (data && data.error) {
+          throw new Error(`Upstash REST error: ${data.error}`);
+        }
+        return data?.result ?? null;
+      };
 
-  try {
-    const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
-    const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
-    if (upstashUrl && upstashToken) {
-      const { Redis } = (await import("@upstash/redis")) as { Redis: any };
-      const redis = new Redis({ url: upstashUrl, token: upstashToken });
       kvClientSingleton = {
         async get<T = unknown>(key: string) {
-          const value = await redis.get<T>(key);
-          return value ?? null;
+          const raw = await command<string | null>("GET", key);
+          if (raw == null) return null;
+          try {
+            return JSON.parse(raw) as T;
+          } catch {
+            return raw as unknown as T;
+          }
         },
         async set(key: string, value: unknown) {
-          await redis.set(key, value);
+          const payload = JSON.stringify(value);
+          await command("SET", key, payload);
           return "OK";
         },
         async del(key: string) {
-          const res = await redis.del(key);
+          const res = await command<number>("DEL", key);
           return typeof res === "number" ? res : 0;
         },
         async setex(key: string, ttlSeconds: number, value: unknown) {
-          await redis.set(key, value, { ex: ttlSeconds });
+          const payload = JSON.stringify(value);
+          await command("SETEX", key, ttlSeconds, payload);
           return "OK";
         },
         async ttl(key: string) {
-          const res = await redis.ttl(key);
+          const res = await command<number>("TTL", key);
           return typeof res === "number" ? res : -2;
         },
       };
-      kvProviderSingleton = "upstash-redis";
+      kvProviderSingleton = "upstash-rest";
       return kvClientSingleton;
     }
   } catch (e) {
-    console.warn("[kv] @upstash/redis の初期化に失敗しました", e);
+    console.warn("[kv] Upstash REST の初期化に失敗しました", e);
   }
 
   console.warn("[kv] 外部KVが設定されていないためメモリKVで代替します（再起動で消えます）");
