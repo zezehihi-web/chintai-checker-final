@@ -12,6 +12,7 @@ import { verifyAccessToken, createLineClient } from '@/lib/line-client';
 import { consumeCaseToken, linkCaseToUser, setActiveCase, getCase, setConversationState } from '@/lib/kv';
 import type { Message } from '@line/bot-sdk';
 
+export const runtime = 'nodejs';
 export const maxDuration = 30;
 
 export async function POST(req: Request) {

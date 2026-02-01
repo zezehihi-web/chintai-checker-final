@@ -9,6 +9,7 @@
 import { NextResponse } from 'next/server';
 import { createCase, createCaseToken } from '@/lib/kv';
 
+export const runtime = 'nodejs';
 export const maxDuration = 30;
 
 export async function POST(req: Request) {

@@ -6,6 +6,8 @@
 import { NextResponse } from 'next/server';
 import { getKvClient, getKvProvider } from '@/lib/kv';
 
+export const runtime = 'nodejs';
+
 export async function GET() {
   try {
     const kv = await getKvClient();
