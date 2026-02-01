@@ -69,10 +69,7 @@ async function getKv(): Promise<KvClient> {
   try {
     const hasVercelEnv = !!process.env.KV_REST_API_URL || !!process.env.KV_URL;
     if (hasVercelEnv) {
-      // NOTE: @vercel/kv が未インストールでもUIを起動できるようにする（ローカル開発用フォールバック）
-      // bundler解決を避けるため eval(require) を使う
-      const req = (0, eval)("require") as NodeRequire; // eslint-disable-line no-eval
-      const mod = req("@vercel/kv") as { kv?: KvClient };
+      const mod = (await import("@vercel/kv")) as { kv?: KvClient };
       if (!mod?.kv) throw new Error("`@vercel/kv` loaded but `kv` export missing");
       kvClientSingleton = mod.kv;
       kvProviderSingleton = "vercel-kv";
@@ -86,9 +83,7 @@ async function getKv(): Promise<KvClient> {
     const upstashUrl = process.env.UPSTASH_REDIS_REST_URL;
     const upstashToken = process.env.UPSTASH_REDIS_REST_TOKEN;
     if (upstashUrl && upstashToken) {
-      // bundler解決を避けるため eval(require) を使う
-      const req = (0, eval)("require") as NodeRequire; // eslint-disable-line no-eval
-      const { Redis } = req("@upstash/redis") as { Redis: any };
+      const { Redis } = (await import("@upstash/redis")) as { Redis: any };
       const redis = new Redis({ url: upstashUrl, token: upstashToken });
       kvClientSingleton = {
         async get<T = unknown>(key: string) {
