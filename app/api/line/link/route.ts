@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server';
 import { verifyAccessToken, createLineClient } from '@/lib/line-client';
 import { consumeCaseToken, linkCaseToUser, setActiveCase, getCase, setConversationState } from '@/lib/kv';
+import type { Message } from '@line/bot-sdk';
 
 export const maxDuration = 30;
 
@@ -132,7 +133,7 @@ export async function POST(req: Request) {
       const propertyName = result.property_name || '物件名不明';
       const roomNumber = result.room_number || '';
       const propertyDisplay = roomNumber ? `${propertyName} ${roomNumber}` : propertyName;
-      const propertyConfirmFlex = {
+      const propertyConfirmFlex: Message = {
         type: 'flex',
         altText: '確認する物件はこの物件で合ってますか？',
         contents: {
