@@ -408,7 +408,7 @@ export async function POST(req: Request) {
               altText: '他の物件を探す',
               template: {
                 type: 'buttons',
-                text: '承知しました。ほかの物件をお探しでしたら、こちらのAI物件探しシステムをご利用ください。',
+                text: '承知しました。ほかに気になる物件候補がありましたら、また診断してみてくださいね。',
                 actions: [
                   {
                     type: 'uri',
