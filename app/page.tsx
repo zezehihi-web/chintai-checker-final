@@ -68,6 +68,8 @@ type AnalysisResult = {
   fortune_title?: string;
   fortune_subtitle?: string;
   fortune_person_type?: string;
+  emoji_char?: string;
+  emoji_reason?: string;
   fortune_items?: {
     category: string;
     score: number;
@@ -372,6 +374,38 @@ const FortuneResult = ({ result }: { result: AnalysisResult }) => {
       default: return "✨";
     }
   };
+
+  if (result.secret_type === "face" && result.emoji_char && result.emoji_reason) {
+    return (
+      <div className={`bg-gradient-to-br ${getBackgroundTheme()} rounded-3xl p-8 relative overflow-hidden shadow-2xl`}>
+        {/* 神秘的な背景エフェクト */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-10 left-10 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl animate-float"></div>
+          <div className="absolute bottom-20 right-10 w-40 h-40 bg-pink-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-blue-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute inset-0 opacity-30" style={{
+            backgroundImage: `radial-gradient(circle at 20% 30%, rgba(255,255,255,0.3) 1px, transparent 1px),
+                             radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 1px, transparent 1px),
+                             radial-gradient(circle at 40% 70%, rgba(255,255,255,0.4) 1px, transparent 1px),
+                             radial-gradient(circle at 70% 60%, rgba(255,255,255,0.2) 1px, transparent 1px),
+                             radial-gradient(circle at 30% 90%, rgba(255,255,255,0.3) 1px, transparent 1px)`,
+            backgroundSize: '100px 100px'
+          }}></div>
+        </div>
+
+        <div className="relative z-10 text-center">
+          <div className="text-sm text-purple-200/80 tracking-widest mb-2">あなたの絵文字診断</div>
+          <h2 className="text-2xl md:text-3xl font-black text-white mb-2">あなたの絵文字はこれ</h2>
+          <div className="text-[5.5rem] md:text-[6.5rem] leading-none mb-4">{result.emoji_char}</div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
+            <p className="text-purple-100/90 text-sm leading-relaxed">
+              {result.emoji_reason}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`bg-gradient-to-br ${getBackgroundTheme()} rounded-3xl p-8 relative overflow-hidden shadow-2xl`}>
@@ -729,17 +763,22 @@ export default function Home() {
     // 裏コマンドモード用のローディングメッセージ
     const secretLoadingMessages = [
       "🔮 裏コマンド起動中...",
-      "✨ 神秘の力が目覚めています...",
-      "🌟 占い師に接続しています...",
-      "🔮 マダム・エステートを呼び出し中...",
-      "💫 運命の糸を読み解いています...",
-      "🌙 星々の配置を確認しています...",
-      "✨ あなたのオーラを感知中...",
-      "🔮 水晶玉に映像が浮かんできました...",
-      "💫 運命の書を紐解いています...",
-      "🌟 特別な鑑定を準備中...",
-      "✨ 神秘のメッセージを受信中...",
-      "🔮 鑑定結果をまとめています..."
+      "✨ 特別診断の準備をしています...",
+      "🌟 解析の準備が整いました...",
+      "💫 画像の特徴を読み解いています...",
+      "🌙 雰囲気を解析しています...",
+      "✨ もうすぐ結果が出ます...",
+      "🔮 仕上げ中です...",
+      "💫 鑑定結果をまとめています..."
+    ];
+
+    const emojiLoadingMessages = [
+      "✨ 裏コマンド作動中...",
+      "😊 あなたの雰囲気を分析中...",
+      "🔎 絵文字の候補を選定中...",
+      "💫 相性の良い絵文字を計算中...",
+      "🫧 仕上げの調整中...",
+      "✨ あなたの絵文字を作成中..."
     ];
 
     let loadingMessages = normalLoadingMessages;
@@ -790,9 +829,9 @@ export default function Home() {
     const switchToSecretMode = (type: string) => {
       setIsSecretModeLoading(true);
       setSecretType(type);
-      loadingMessages = secretLoadingMessages;
+      loadingMessages = type === "face" ? emojiLoadingMessages : secretLoadingMessages;
       messageIndex = 0;
-      setLoadingStep(secretLoadingMessages[0]);
+      setLoadingStep(loadingMessages[0]);
     };
 
     try {
@@ -1395,7 +1434,7 @@ export default function Home() {
                       isSecretModeLoading ? "bg-purple-400" : "bg-blue-500"
                     }`}></div>
                     <span className="text-sm font-bold text-slate-800">
-                      {isSecretModeLoading ? "🔮 特別鑑定中" : "AI診断中"}
+                      {isSecretModeLoading ? "🔮 裏コマンド作動中" : "AI診断中"}
                     </span>
                 </div>
                   <div className="text-right">
@@ -1403,6 +1442,11 @@ export default function Home() {
                       isSecretModeLoading ? "text-purple-400" : "text-blue-400"
                     }`}>{Math.floor(loadingProgress)}</span>
                     <span className="text-sm text-slate-400">%</span>
+                    {isSecretModeLoading && (
+                      <div className="text-[10px] text-purple-200/80 mt-1">
+                        {secretType === "face" ? "あなたの絵文字作成中" : "特別診断準備中"}
+                      </div>
+                    )}
                 </div>
                 </div>
                 
@@ -1435,7 +1479,9 @@ export default function Home() {
                 {isSecretModeLoading && (
                   <div className="text-center mb-3">
                     <p className="text-purple-300/80 text-xs animate-pulse">
-                      ✨ あなたの運命を読み解いています ✨
+                      {secretType === "face"
+                        ? "✨ あなたの絵文字を生成中 ✨"
+                        : "✨ 特別診断を実行中 ✨"}
                     </p>
                   </div>
                 )}
@@ -1451,8 +1497,14 @@ export default function Home() {
                       const estimatedTotal = 30;
                       const remaining = Math.max(0, estimatedTotal - loadingElapsed);
                       if (isSecretModeLoading) {
-                        if (remaining > 20) return "占い師が集中しています...";
-                        if (remaining > 10) return "運命の糸を紡いでいます...";
+                        if (secretType === "face") {
+                          if (remaining > 20) return "絵文字を選定中...";
+                          if (remaining > 10) return "仕上げの調整中...";
+                          if (remaining > 5) return "まもなく完成...";
+                          return "結果が出てきます...";
+                        }
+                        if (remaining > 20) return "解析に集中しています...";
+                        if (remaining > 10) return "特徴を読み解いています...";
                         if (remaining > 5) return "まもなく鑑定完了...";
                         return "結果が出てきます...";
                       }

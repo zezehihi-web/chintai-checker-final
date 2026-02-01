@@ -80,6 +80,38 @@ const FortuneResult = ({ result }: { result: AnalysisResult }) => {
     }
   };
 
+  if (result.secret_type === "face" && result.emoji_char && result.emoji_reason) {
+    return (
+      <div className={`bg-gradient-to-br ${getBackgroundTheme()} rounded-3xl p-8 relative overflow-hidden shadow-2xl`}>
+        {/* 神秘的な背景エフェクト */}
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute top-10 left-10 w-32 h-32 bg-purple-500/20 rounded-full blur-3xl animate-float"></div>
+          <div className="absolute bottom-20 right-10 w-40 h-40 bg-pink-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '1s' }}></div>
+          <div className="absolute top-1/2 left-1/4 w-24 h-24 bg-blue-500/20 rounded-full blur-3xl animate-float" style={{ animationDelay: '2s' }}></div>
+          <div className="absolute inset-0 opacity-30" style={{
+            backgroundImage: `radial-gradient(circle at 20% 30%, rgba(255,255,255,0.3) 1px, transparent 1px),
+                             radial-gradient(circle at 80% 20%, rgba(255,255,255,0.2) 1px, transparent 1px),
+                             radial-gradient(circle at 40% 70%, rgba(255,255,255,0.4) 1px, transparent 1px),
+                             radial-gradient(circle at 70% 60%, rgba(255,255,255,0.2) 1px, transparent 1px),
+                             radial-gradient(circle at 30% 90%, rgba(255,255,255,0.3) 1px, transparent 1px)`,
+            backgroundSize: '100px 100px'
+          }}></div>
+        </div>
+
+        <div className="relative z-10 text-center">
+          <div className="text-sm text-purple-200/80 tracking-widest mb-2">あなたの絵文字診断</div>
+          <h2 className="text-2xl md:text-3xl font-black text-white mb-2">あなたの絵文字はこれ</h2>
+          <div className="text-[5.5rem] md:text-[6.5rem] leading-none mb-4">{result.emoji_char}</div>
+          <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-5 border border-white/20">
+            <p className="text-purple-100/90 text-sm leading-relaxed">
+              {result.emoji_reason}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`bg-gradient-to-br ${getBackgroundTheme()} rounded-3xl p-8 relative overflow-hidden shadow-2xl`}>
       {/* 神秘的な背景エフェクト */}
@@ -258,6 +290,8 @@ type AnalysisResult = {
   fortune_title?: string;
   fortune_subtitle?: string;
   fortune_person_type?: string;
+  emoji_char?: string;
+  emoji_reason?: string;
   fortune_items?: {
     category: string;
     score: number;
@@ -683,4 +717,3 @@ export default function SharePage() {
     </div>
   );
 }
-

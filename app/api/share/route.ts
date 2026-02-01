@@ -35,6 +35,8 @@ export async function POST(req: Request) {
       shareData.secret_type = result.secret_type;
       shareData.fortune_title = result.fortune_title;
       shareData.fortune_subtitle = result.fortune_subtitle;
+      shareData.emoji_char = result.emoji_char;
+      shareData.emoji_reason = result.emoji_reason;
       shareData.fortune_person_type = result.fortune_person_type;
       shareData.fortune_items = result.fortune_items;
       shareData.fortune_action_advice = result.fortune_action_advice;
@@ -105,4 +107,3 @@ function cleanupExpiredData() {
     }
   }
 }
-
