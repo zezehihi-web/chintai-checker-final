@@ -1176,7 +1176,14 @@ export default function Home() {
   // 注: LINE連携は純粋な<a>タグで実装（handleLineLink不要）
 
   return (
-    <div className="min-h-dvh bg-white text-slate-800 font-sans pb-20 relative overflow-hidden">
+    <div
+      className="min-h-dvh bg-[#f5f7fb] text-slate-900 font-sans pb-24 pt-2 md:pt-4 relative overflow-hidden"
+      style={{
+        backgroundImage:
+          "radial-gradient(70% 60% at 12% 6%, rgba(59, 130, 246, 0.10), transparent 60%), radial-gradient(60% 55% at 88% 10%, rgba(14, 165, 233, 0.08), transparent 55%)",
+        backgroundColor: "#f5f7fb",
+      }}
+    >
 
       {/* カメラUI */}
       <CameraCapture
