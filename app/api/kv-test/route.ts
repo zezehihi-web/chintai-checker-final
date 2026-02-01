@@ -20,7 +20,7 @@ export async function GET() {
     const testKey = 'test:connection';
     const testValue = { timestamp: Date.now(), message: 'KV connection test' };
 
-    await kv.set(testKey, JSON.stringify(testValue), { ex: 60 }); // 60秒で期限切れ
+    await kv.setex(testKey, 60, testValue); // 60秒で期限切れ
     const retrieved = await kv.get(testKey);
 
     return NextResponse.json({
