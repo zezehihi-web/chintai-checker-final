@@ -193,7 +193,7 @@ export async function POST(req: Request) {
                     },
                     {
                       type: 'box',
-                      layout: 'horizontal',
+                      layout: 'vertical',
                       spacing: 'sm',
                       margin: 'lg',
                       contents: [
@@ -207,7 +207,6 @@ export async function POST(req: Request) {
                             label: 'はい',
                             text: 'はい',
                           },
-                          flex: 1,
                         },
                         {
                           type: 'button',
@@ -219,7 +218,17 @@ export async function POST(req: Request) {
                             label: 'いいえ',
                             text: 'いいえ',
                           },
-                          flex: 1,
+                        },
+                        {
+                          type: 'button',
+                          style: 'primary',
+                          color: '#FF9500',
+                          height: 'sm',
+                          action: {
+                            type: 'message',
+                            label: '相談したい',
+                            text: '相談したい',
+                          },
                         },
                       ],
                     },
@@ -268,12 +277,10 @@ export async function POST(req: Request) {
         const activeCase = await getActiveCase(userId);
         const caseId = conversationState?.case_id || activeCase?.case_id;
 
-        // 「はい」ボタン - 物件確認フローから申し込み希望へ
-        if (messageText === 'はい' && caseId) {
-          // property_confirmステップの場合のみ（案件詳細表示の「はい」と区別）
-          if (conversationState && conversationState.step === 'property_confirm') {
+        // 会話状態に基づく分岐（最優先）
+        if (caseId && conversationState?.step === 'property_confirm') {
+          if (messageText === 'はい') {
             console.log('[property_confirm] User selected "はい" - moving to application_intent');
-            // 「はい」が選択された場合 → 申し込み希望を聞く
 
             await client.replyMessage(event.replyToken, {
               type: 'flex',
@@ -321,8 +328,8 @@ export async function POST(req: Request) {
                           height: 'sm',
                           action: {
                             type: 'message',
-                            label: 'いいえ',
-                            text: 'いいえ',
+                            label: '申し込みしない',
+                            text: '申し込みしない',
                           },
                         },
                         {
@@ -348,77 +355,85 @@ export async function POST(req: Request) {
               },
             });
 
-            // メッセージ送信後に状態を変更
             await setConversationState(userId, 'application_intent', caseId);
             continue;
           }
-          // 「はい」がapplication_intentステップの後に押された場合は、詳細表示へ（後続の処理へ）
+
+          if (messageText === 'いいえ') {
+            console.log('[property_confirm] User selected "いいえ" - moving to waiting_images');
+
+            await client.replyMessage(event.replyToken, {
+              type: 'text',
+              text: 'ごめん、こちらに見積書と図面をLINEのチャットで直接送ってくれない？',
+            });
+
+            await setConversationState(userId, 'waiting_images', caseId);
+            continue;
+          }
+
+          if (messageText === '相談したい') {
+            console.log('[property_confirm] User selected "相談したい"');
+
+            await client.replyMessage(event.replyToken, {
+              type: 'text',
+              text: '了解だよ。じゃあ相談内容をざっくりにメッセージ（LINEのメッセージ）で教えてね。',
+            });
+
+            await setConversationState(userId, 'consultation', caseId);
+            continue;
+          }
         }
 
-        // 「いいえ」ボタン
-        if (messageText === 'いいえ' && caseId) {
-          console.log('[Button] User selected "いいえ"');
+        if (caseId && conversationState?.step === 'application_intent') {
+          if (messageText === '申し込みをしたい' || messageText === '申し込みする') {
+            console.log('[application_intent] User selected "申し込みをしたい"');
 
-          await client.replyMessage(event.replyToken, {
-            type: 'text',
-            text: '承知しました。物件が見つかり次第、またツールをご利用くださいませ',
-          });
+            await client.replyMessage(event.replyToken, {
+              type: 'text',
+              text: '承知しました。担当者より詳細な初期費用の見積もりと申し込み方法について連絡いたします。',
+            });
 
-          await setConversationState(userId, 'completed', caseId);
-          continue;
-        }
+            await setConversationState(userId, 'completed', caseId);
+            console.log(`[Manual action required] User ${userId} wants to apply for case ${caseId}`);
+            continue;
+          }
 
-        // 「申し込みをしたい」ボタン - お申し込み希望
-        if ((messageText === '申し込みをしたい' || messageText === '申し込みする') && caseId) {
-          console.log('[Button] User selected "申し込みをしたい"');
+          if (messageText === 'いいえ' || messageText === '申し込みしない' || messageText === '他の物件を探す') {
+            console.log('[application_intent] User selected "申し込みしない"');
 
-          await client.replyMessage(event.replyToken, {
-            type: 'text',
-            text: 'ありがとうございます。\n\n最新の空室状況と、正確な初期費用のお見積もりを確認させていただきます。少々お待ちくださいませ。\n\n担当者より詳細をご連絡いたします。',
-          });
+            const propertySearchUrl = 'https://suumo.jp/chintai/';
 
-          await setConversationState(userId, 'completed', caseId);
-          console.log(`[Manual action required] User ${userId} wants to apply for case ${caseId}`);
-          continue;
-        }
+            await client.replyMessage(event.replyToken, {
+              type: 'template',
+              altText: '他の物件を探す',
+              template: {
+                type: 'buttons',
+                text: 'そうか、じゃあ他の物件を探せるこちらのAIで物件探すシステムがあるからそちらを使ってね！',
+                actions: [
+                  {
+                    type: 'uri',
+                    label: '物件を探す',
+                    uri: propertySearchUrl,
+                  },
+                ],
+              },
+            });
 
-        // 「他の物件を探す」ボタン - 物件探しシステムへ誘導
-        if ((messageText === '他の物件を探す' || messageText === '申し込みしない') && caseId) {
-          console.log('[Button] User selected "他の物件を探す"');
+            await setConversationState(userId, 'completed', caseId);
+            continue;
+          }
 
-          const propertySearchUrl = 'https://suumo.jp/chintai/';
+          if (messageText === '相談したい') {
+            console.log('[application_intent] User selected "相談したい"');
 
-          await client.replyMessage(event.replyToken, {
-            type: 'template',
-            altText: '他の物件を探す',
-            template: {
-              type: 'buttons',
-              text: '承知いたしました。\n\n他の物件をお探しでしたら、AIで最適な物件を探せるシステムをご用意しております。ぜひこちらもご活用ください。',
-              actions: [
-                {
-                  type: 'uri',
-                  label: '物件を探す',
-                  uri: propertySearchUrl,
-                },
-              ],
-            },
-          });
+            await client.replyMessage(event.replyToken, {
+              type: 'text',
+              text: '了解だよ。じゃあ相談内容をざっくりにメッセージ（LINEのメッセージ）で教えてね。',
+            });
 
-          await setConversationState(userId, 'completed', caseId);
-          continue;
-        }
-
-        // 「相談したい」ボタン - 相談内容を聞く
-        if (messageText === '相談したい' && caseId) {
-          console.log('[Button] User selected "相談したい"');
-
-          await client.replyMessage(event.replyToken, {
-            type: 'text',
-            text: '相談内容をご送信ください🙇‍♂️\nスタッフが直接確認し、ご返答させていただきます。',
-          });
-
-          await setConversationState(userId, 'consultation', caseId);
-          continue;
+            await setConversationState(userId, 'consultation', caseId);
+            continue;
+          }
         }
 
 

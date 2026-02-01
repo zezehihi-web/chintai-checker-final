@@ -129,26 +129,97 @@ export async function POST(req: Request) {
       }
 
       const result = caseData.result;
-      const propertyConfirmQuestionText = '先ほど設定した物件名はこちらでお間違いないですか?';
+      const propertyName = result.property_name || '物件名不明';
+      const roomNumber = result.room_number || '';
+      const propertyDisplay = roomNumber ? `${propertyName} ${roomNumber}` : propertyName;
+      const propertyConfirmFlex = {
+        type: 'flex',
+        altText: '確認する物件はこの物件で合ってますか？',
+        contents: {
+          type: 'bubble',
+          body: {
+            type: 'box',
+            layout: 'vertical',
+            contents: [
+              {
+                type: 'text',
+                text: '物件の確認',
+                weight: 'bold',
+                size: 'xl',
+                color: '#333333',
+                margin: 'md',
+                align: 'center',
+              },
+              {
+                type: 'text',
+                text: propertyDisplay,
+                size: 'lg',
+                color: '#666666',
+                margin: 'sm',
+                align: 'center',
+                wrap: true,
+              },
+              {
+                type: 'separator',
+                margin: 'lg',
+              },
+              {
+                type: 'box',
+                layout: 'vertical',
+                spacing: 'sm',
+                margin: 'lg',
+                contents: [
+                  {
+                    type: 'button',
+                    style: 'primary',
+                    color: '#007AFF',
+                    height: 'sm',
+                    action: {
+                      type: 'message',
+                      label: 'はい',
+                      text: 'はい',
+                    },
+                  },
+                  {
+                    type: 'button',
+                    style: 'secondary',
+                    color: '#808080',
+                    height: 'sm',
+                    action: {
+                      type: 'message',
+                      label: 'いいえ',
+                      text: 'いいえ',
+                    },
+                  },
+                  {
+                    type: 'button',
+                    style: 'primary',
+                    color: '#FF9500',
+                    height: 'sm',
+                    action: {
+                      type: 'message',
+                      label: '相談したい',
+                      text: '相談したい',
+                    },
+                  },
+                ],
+              },
+            ],
+          },
+          styles: {
+            body: {
+              backgroundColor: '#FFFFFF',
+            },
+          },
+        },
+      };
 
       // 裏コマンド（占いモード）の場合
       if (result.is_secret_mode) {
         const message = `✨ ${result.fortune_title || 'スペシャル診断'}\n\n${result.fortune_summary || ''}\n\n「履歴」と送信すると、いつでも結果を確認できます。`;
-        // 物件名が空/未取得でも、分岐開始の質問だけは必ず送る
-        await setConversationState(lineUserId, 'property_confirm', caseId);
 
         await client.pushMessage(lineUserId, [
           { type: 'text', text: message },
-          {
-            type: 'text',
-            text: propertyConfirmQuestionText,
-            quickReply: {
-              items: [
-                { type: 'action', action: { type: 'message', label: 'はい', text: 'はい' } },
-                { type: 'action', action: { type: 'message', label: 'いいえ', text: 'いいえ' } },
-              ],
-            },
-          },
         ]);
       } else {
         // 通常の診断結果
@@ -189,23 +260,14 @@ export async function POST(req: Request) {
 
         message += `「履歴」と送信すると、いつでも詳細を確認できます。`;
 
-        // 会話状態を保存（このあと「はい/いいえ」分岐を開始する）
+        // 会話状態を保存（このあと分岐を開始する）
         await setConversationState(lineUserId, 'property_confirm', caseId);
 
         // 登録直後は replyToken が無いので pushMessage に統一し、
         // 「診断結果 + 質問」を messages 配列で1回のAPI呼び出しで必ずセット送信する
         await client.pushMessage(lineUserId, [
           { type: 'text', text: message },
-          {
-            type: 'text',
-            text: propertyConfirmQuestionText,
-            quickReply: {
-              items: [
-                { type: 'action', action: { type: 'message', label: 'はい', text: 'はい' } },
-                { type: 'action', action: { type: 'message', label: 'いいえ', text: 'いいえ' } },
-              ],
-            },
-          },
+          propertyConfirmFlex,
         ]);
       }
     } catch (messageError: any) {
