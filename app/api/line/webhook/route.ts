@@ -293,7 +293,7 @@ export async function POST(req: Request) {
                   contents: [
                     {
                       type: 'text',
-                      text: '申し込み希望ですか？',
+                      text: 'お申し込みをご希望ですか？',
                       weight: 'bold',
                       size: 'lg',
                       color: '#333333',
@@ -364,7 +364,7 @@ export async function POST(req: Request) {
 
             await client.replyMessage(event.replyToken, {
               type: 'text',
-              text: 'ごめん、こちらに見積書と図面をLINEのチャットで直接送ってくれない？',
+              text: '恐れ入りますが、こちらに見積書と図面をLINEのチャットで直接お送りいただけますか？',
             });
 
             await setConversationState(userId, 'waiting_images', caseId);
@@ -376,7 +376,7 @@ export async function POST(req: Request) {
 
             await client.replyMessage(event.replyToken, {
               type: 'text',
-              text: '了解だよ。じゃあ相談内容をざっくりにメッセージ（LINEのメッセージ）で教えてね。',
+              text: '承知しました。相談内容を簡単にメッセージ（LINEのメッセージ）でお知らせください。',
             });
 
             await setConversationState(userId, 'consultation', caseId);
@@ -408,7 +408,7 @@ export async function POST(req: Request) {
               altText: '他の物件を探す',
               template: {
                 type: 'buttons',
-                text: 'そうか、じゃあ他の物件を探せるこちらのAIで物件探すシステムがあるからそちらを使ってね！',
+                text: '承知しました。ほかの物件をお探しでしたら、こちらのAI物件探しシステムをご利用ください。',
                 actions: [
                   {
                     type: 'uri',
@@ -428,7 +428,7 @@ export async function POST(req: Request) {
 
             await client.replyMessage(event.replyToken, {
               type: 'text',
-              text: '了解だよ。じゃあ相談内容をざっくりにメッセージ（LINEのメッセージ）で教えてね。',
+              text: '承知しました。相談内容を簡単にメッセージ（LINEのメッセージ）でお知らせください。',
             });
 
             await setConversationState(userId, 'consultation', caseId);

@@ -104,7 +104,7 @@ const buildApplicationIntentFlex = (): Message => ({
       contents: [
         {
           type: "text",
-          text: "申し込み希望ですか？",
+          text: "お申し込みをご希望ですか？",
           weight: "bold",
           size: "lg",
           color: "#333333",
@@ -152,7 +152,7 @@ const buildPropertySearchTemplate = (): Message => ({
   altText: "他の物件を探す",
   template: {
     type: "buttons",
-    text: "そうか、じゃあ他の物件を探せるこちらのAIで物件探すシステムがあるからそちらを使ってね！",
+    text: "承知しました。ほかの物件をお探しでしたら、こちらのAI物件探しシステムをご利用ください。",
     actions: [{ type: "uri", label: "物件を探す", uri: propertySearchUrl }],
   },
 });
@@ -197,10 +197,10 @@ export async function POST(req: Request) {
       replies.push(buildApplicationIntentFlex());
       nextState = "application_intent";
     } else if (messageText === "いいえ") {
-      replies.push({ type: "text", text: "ごめん、こちらに見積書と図面をLINEのチャットで直接送ってくれない？" });
+    replies.push({ type: "text", text: "恐れ入りますが、こちらに見積書と図面をLINEのチャットで直接お送りいただけますか？" });
       nextState = "waiting_images";
     } else if (messageText === "相談したい") {
-      replies.push({ type: "text", text: "了解だよ。じゃあ相談内容をざっくりにメッセージ（LINEのメッセージ）で教えてね。" });
+    replies.push({ type: "text", text: "承知しました。相談内容を簡単にメッセージ（LINEのメッセージ）でお知らせください。" });
       nextState = "consultation";
     }
   }
@@ -213,7 +213,7 @@ export async function POST(req: Request) {
       replies.push(buildPropertySearchTemplate());
       nextState = "completed";
     } else if (messageText === "相談したい") {
-      replies.push({ type: "text", text: "了解だよ。じゃあ相談内容をざっくりにメッセージ（LINEのメッセージ）で教えてね。" });
+      replies.push({ type: "text", text: "承知しました。相談内容を簡単にメッセージ（LINEのメッセージ）でお知らせください。" });
       nextState = "consultation";
     }
   }
