@@ -376,7 +376,7 @@ export async function POST(req: Request) {
 
             await client.replyMessage(event.replyToken, {
               type: 'text',
-              text: '承知しました。相談内容を簡単にメッセージ（LINEのメッセージ）でお知らせください。',
+              text: 'お問い合わせありがとうございます。相談内容を送信してください。スタッフが確認のうえ対応いたします。',
             });
 
             await setConversationState(userId, 'consultation', caseId);
@@ -428,7 +428,7 @@ export async function POST(req: Request) {
 
             await client.replyMessage(event.replyToken, {
               type: 'text',
-              text: '承知しました。相談内容を簡単にメッセージ（LINEのメッセージ）でお知らせください。',
+              text: 'お問い合わせありがとうございます。相談内容を送信してください。スタッフが確認のうえ対応いたします。',
             });
 
             await setConversationState(userId, 'consultation', caseId);

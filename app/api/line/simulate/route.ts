@@ -200,7 +200,7 @@ export async function POST(req: Request) {
     replies.push({ type: "text", text: "恐れ入りますが、こちらに見積書と図面をLINEのチャットで直接お送りいただけますか？" });
       nextState = "waiting_images";
     } else if (messageText === "相談したい") {
-    replies.push({ type: "text", text: "承知しました。相談内容を簡単にメッセージ（LINEのメッセージ）でお知らせください。" });
+    replies.push({ type: "text", text: "お問い合わせありがとうございます。相談内容を送信してください。スタッフが確認のうえ対応いたします。" });
       nextState = "consultation";
     }
   }
@@ -213,7 +213,7 @@ export async function POST(req: Request) {
       replies.push(buildPropertySearchTemplate());
       nextState = "completed";
     } else if (messageText === "相談したい") {
-      replies.push({ type: "text", text: "承知しました。相談内容を簡単にメッセージ（LINEのメッセージ）でお知らせください。" });
+      replies.push({ type: "text", text: "お問い合わせありがとうございます。相談内容を送信してください。スタッフが確認のうえ対応いたします。" });
       nextState = "consultation";
     }
   }
