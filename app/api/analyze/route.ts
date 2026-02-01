@@ -150,6 +150,8 @@ export async function POST(req: Request) {
 
     const primaryModel = process.env.GEMINI_MODEL_NAME || "gemini-2.5-pro";
     
+    const hasFlyer = !!planFile;
+
     console.log("🔧 設定確認:");
     console.log("  - 使用モデル:", primaryModel);
     console.log("  - APIキー設定:", GEMINI_API_KEY ? `✅ 設定済み (${GEMINI_API_KEY.substring(0, 10)}...)` : "❌ 未設定");
@@ -1001,6 +1003,44 @@ Markdown記法は含めず、純粋なJSON文字列だけを返してくださ�
         const toNum = (v: any): number =>
           typeof v === 'number' ? v : (typeof v === 'string' ? parseFloat(v) || 0 : 0);
 
+        const normalizeText = (text: string): string =>
+          text
+            .replace(/\s+/g, ' ')
+            .replace(/[　]/g, ' ')
+            .trim();
+
+        const extractBrokerageRatio = (text: string): number | null => {
+          const normalized = normalizeText(text);
+          if (!normalized) return null;
+
+          const hasTax = /税|税込|消費税|\\+税|＋税|tax/i.test(normalized);
+
+          const monthMatch = normalized.match(/([0-9]+(?:\.[0-9]+)?)\s*(?:ヶ月|カ月|か月|月)(?:分)?/);
+          if (monthMatch) {
+            const months = parseFloat(monthMatch[1]);
+            if (Number.isFinite(months) && months > 0) {
+              const adjusted = hasTax && months <= 1 ? months * 1.1 : months;
+              if (adjusted > 0.1 && adjusted <= 2.5) {
+                return Math.round(adjusted * 100) / 100;
+              }
+            }
+          }
+
+          const percentMatch = normalized.match(/([0-9]+(?:\.[0-9]+)?)\s*%/);
+          if (percentMatch) {
+            const percent = parseFloat(percentMatch[1]);
+            if (Number.isFinite(percent) && percent > 0) {
+              const ratio = percent / 100;
+              const adjusted = hasTax ? ratio * 1.1 : ratio;
+              if (adjusted > 0.1 && adjusted <= 2.5) {
+                return Math.round(adjusted * 100) / 100;
+              }
+            }
+          }
+
+          return null;
+        };
+
         // ========== Step 0: 仲介手数料の強制補正 ==========
         // AIの出力に依存せず、必ず正しい値を算出してセットする
         
@@ -1018,6 +1058,8 @@ Markdown記法は含めず、純粋なJSON文字列だけを返してくださ�
           );
         }
         const rent = rentItem ? toNum(rentItem.price_original) : 0;
+        let inferredRent = 0;
+        let inferredRatio = 0;
         
         console.log("=== 仲介手数料計算デバッグ ===");
         console.log("家賃項目:", rentItem ? { name: rentItem.name, price: rentItem.price_original } : "見つからず");
@@ -1033,10 +1075,30 @@ Markdown記法は含めず、純粋なJSON文字列だけを返してくださ�
           const brokerageItem = json.items[brokerageIndex];
           const brokerageOriginal = toNum(brokerageItem.price_original);
           console.log("仲介手数料（請求額）:", brokerageOriginal);
-          
-          if (rent > 0) {
+
+          if (rent <= 0 && brokerageOriginal > 0) {
+            const brokerageEvidenceText = [brokerageItem.name, brokerageItem.reason]
+              .filter(Boolean)
+              .join(' ');
+            const ratio = extractBrokerageRatio(brokerageEvidenceText);
+            if (ratio) {
+              inferredRatio = ratio;
+              inferredRent = Math.round(brokerageOriginal / ratio);
+              console.log("家賃推測（補足テキストから逆算）:", {
+                ratio,
+                inferredRent,
+                evidence: brokerageEvidenceText
+              });
+            } else {
+              console.warn("⚠️ 補足テキストから家賃推測ができませんでした");
+            }
+          }
+
+          const rentForCalc = rent > 0 ? rent : inferredRent;
+
+          if (rentForCalc > 0) {
             // 適正価格 = 家賃 × 0.55（0.5ヶ月 + 税10%）
-            const brokerageFair = Math.round(rent * 0.55);
+            const brokerageFair = Math.round(rentForCalc * 0.55);
             // 削減可能額 = 請求額 - 適正価格
             const brokerageDiscount = brokerageOriginal - brokerageFair;
             
@@ -1067,28 +1129,7 @@ Markdown記法は含めず、純粋なJSON文字列だけを返してくださ�
               console.log("✅ 仲介手数料は適正（差額100円以下）");
             }
           } else {
-            console.warn("⚠️ 家賃が取得できないため、仲介手数料の適正価格を計算できません");
-            // 家賃が取得できない場合、仲介手数料が1ヶ月分相当かどうかを推定
-            // 仲介手数料が高額（例: 10万円以上）なら negotiable として扱う
-            if (brokerageOriginal >= 50000) {
-              // 仲介手数料から家賃を逆算（1ヶ月分 + 税 = 1.1 と仮定）
-              const estimatedRent = Math.round(brokerageOriginal / 1.1);
-              const estimatedFair = Math.round(estimatedRent * 0.55);
-              const estimatedDiscount = brokerageOriginal - estimatedFair;
-              
-              json.items[brokerageIndex] = {
-                ...brokerageItem,
-                price_fair: estimatedFair,
-                status: 'negotiable',
-                reason: `仲介手数料が高額です。事前の同意がない場合、法律的に賃料の0.5ヶ月(税別)が原則であるため、${estimatedFair.toLocaleString()}円程度まで減額交渉できる可能性があります。`
-              };
-              console.log("⚠️ 家賃不明のため推定計算:", {
-                original: brokerageOriginal,
-                estimatedRent,
-                estimatedFair,
-                estimatedDiscount
-              });
-            }
+            console.warn("⚠️ 家賃が取得できず、補足情報からも推測できないため仲介手数料の補正をスキップします");
           }
         } else {
           console.log("仲介手数料項目が見つかりませんでした");
@@ -1141,36 +1182,47 @@ Markdown記法は含めず、純粋なJSON文字列だけを返してくださ�
         const warningCount = json.items.filter((item: any) => item && (item.status === 'warning' || item.status === 'WARNING')).length;
         const brokerageItemForHeadline = brokerageIndex >= 0 ? json.items[brokerageIndex] : null;
         const brokerageAmount = brokerageItemForHeadline ? toNum(brokerageItemForHeadline.price_original) : 0;
-        const rentVal = rent || 0;
+        const rentVal = rent > 0 ? rent : inferredRent;
+        const rentSource = rent > 0 ? 'extracted' : inferredRent > 0 ? 'inferred' : 'missing';
         let headline: string | null = null;
         let ratio = 0;
         let logicPath = 'None';
-        if (rentVal > 0) {
+        if (rentVal > 0 && brokerageAmount > 0) {
           ratio = brokerageAmount / rentVal;
-          // 【判定A】仲介手数料が家賃の1.0ヶ月分(0.95以上) かつ 要確認項目が5つ以上
-          if (ratio >= 0.95 && warningCount >= 5) {
-            headline = "大幅に削減可能な可能性が高いです";
+          // 【判定A】仲介手数料が家賃の1.1ヶ月分以上 かつ 要確認項目が4つ以上
+          if (ratio >= 1.1 && warningCount >= 4) {
+            headline = "大幅に削減できる可能性が高いです";
             logicPath = 'Condition A (High Reduction)';
           }
-          // 【判定B】仲介手数料が家賃の0.55ヶ月分以上（判定A以外）
-          else if (ratio >= 0.55) {
+          // 【判定B】仲介手数料が家賃の1.1ヶ月分以上 かつ 要確認項目が3つ以下
+          else if (ratio >= 1.1 && warningCount <= 3) {
             headline = "削減できる可能性が非常に高いです";
             logicPath = 'Condition B (Likely Reduction)';
           }
-          // 【判定C】仲介手数料が家賃の0.55ヶ月分以下 かつ 要確認項目が3つ以下
-          else if (ratio <= 0.55 && warningCount <= 3) {
+          // 【判定C】それ以外
+          else {
             headline = "適正な範囲であると言えます";
             logicPath = 'Condition C (Fair)';
           }
         } else {
-          logicPath = 'Error: Rent is 0';
+          if (!hasFlyer) {
+            headline = "図面を追加でアップロードすることを強く推奨します";
+            logicPath = 'Condition D (No rent & no flyer)';
+          } else {
+            headline = "適正な範囲であると言えます";
+            logicPath = 'Condition C (Fallback without rent)';
+          }
         }
         json.headline = headline;
         json.debug = {
-          rent_extracted: rentVal,
+          rent_extracted: rent,
+          rent_inferred: inferredRent,
+          rent_source: rentSource,
+          inferred_ratio: inferredRatio,
           brokerage_amount: brokerageAmount,
           ratio: Math.round(ratio * 100) / 100,
           warning_count: warningCount,
+          has_flyer: hasFlyer,
           logic_path: logicPath
         };
 
