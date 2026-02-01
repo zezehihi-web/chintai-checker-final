@@ -1883,9 +1883,9 @@ export default function Home() {
                   trackButtonClick(e);
                   resultPlanInputRef.current?.click();
                 }}
-                className="w-2/5 min-w-[240px] max-w-sm mx-auto bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center shadow-lg transition-all hover:scale-[1.01]"
+                className="w-3/5 min-w-[320px] max-w-lg mx-auto bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-400 hover:via-orange-400 hover:to-rose-500 text-white font-extrabold py-3 px-6 rounded-xl flex items-center justify-center shadow-xl shadow-orange-500/40 transition-all hover:scale-[1.01] ring-2 ring-orange-200/60"
               >
-                <span className="text-xs sm:text-sm whitespace-nowrap">図面を追加アップロード</span>
+                <span className="text-xs sm:text-sm whitespace-nowrap">募集図面を追加アップロードして再診断する</span>
               </button>
             </div>
           )}
