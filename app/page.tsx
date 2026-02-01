@@ -560,6 +560,15 @@ export default function Home() {
   // カメラ関連
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [cameraTarget, setCameraTarget] = useState<UploadTarget>("estimate");
+
+  const liffId = process.env.NEXT_PUBLIC_LIFF_ID || '2009006626-vnlJewF7';
+  const lineFriendUrl = 'https://lin.ee/RSEtLGm';
+  const lineLiffUniversalUrl = lineToken
+    ? `https://liff.line.me/${liffId}?state=${lineToken}`
+    : lineFriendUrl;
+  const lineLiffSchemeUrl = lineToken
+    ? `line://app/${liffId}?state=${lineToken}`
+    : lineFriendUrl;
   
   // ファイル入力参照
   const estimateInputRef = useRef<HTMLInputElement>(null);
@@ -964,6 +973,24 @@ export default function Home() {
     setLineToken(null);
     setCurrentView("top");
     window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
+  const handleLineCtaClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+
+    const primaryUrl = lineLiffSchemeUrl;
+    const fallbackUrl = lineLiffUniversalUrl;
+    const start = Date.now();
+
+    window.location.href = primaryUrl;
+
+    if (lineToken) {
+      setTimeout(() => {
+        if (Date.now() - start < 1600) {
+          window.location.href = fallbackUrl;
+        }
+      }, 1200);
+    }
   };
 
   const formatYen = (num: number) => new Intl.NumberFormat('ja-JP').format(num);
@@ -1490,13 +1517,17 @@ export default function Home() {
                 <div className="relative z-10">
                   {/* LINE友だち追加ボタン — lineTokenがあればLIFF経由で物件情報を引き継ぎ */}
                   <a
-                    href={lineToken ? "https://liff.line.me/2009006626-vnlJewF7?state=" + lineToken : "https://lin.ee/RSEtLGm"}
+                    href={lineLiffUniversalUrl}
+                    onClick={handleLineCtaClick}
                     className="block w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 no-underline select-none cursor-pointer"
                     style={{
                       boxShadow: '0 12px 36px rgba(6, 199, 85, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28)',
                       position: 'relative',
                       zIndex: 50,
                       touchAction: 'manipulation',
+                      WebkitUserSelect: 'none',
+                      WebkitTouchCallout: 'none',
+                      userSelect: 'none',
                     }}
                   >
                     <div className="flex items-center justify-center gap-4">
@@ -1894,13 +1925,17 @@ export default function Home() {
              <div className="relative z-10">
                {/* LINE友だち追加ボタン — lineTokenがあればLIFF経由で物件情報を引き継ぎ */}
                <a
-                 href={lineToken ? "https://liff.line.me/2009006626-vnlJewF7?state=" + lineToken : "https://lin.ee/RSEtLGm"}
+                 href={lineLiffUniversalUrl}
+                 onClick={handleLineCtaClick}
                  className="block w-full bg-[#06C755] hover:brightness-105 shadow-xl rounded-full overflow-hidden active:scale-95 transition-transform min-h-24 md:min-h-28 px-6 py-5 no-underline select-none cursor-pointer"
                  style={{
                    boxShadow: '0 12px 36px rgba(6, 199, 85, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.28)',
                    position: 'relative',
                    zIndex: 50,
                    touchAction: 'manipulation',
+                   WebkitUserSelect: 'none',
+                   WebkitTouchCallout: 'none',
+                   userSelect: 'none',
                  }}
                >
                  <div className="flex items-center justify-center gap-4">
