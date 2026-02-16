@@ -196,22 +196,37 @@ const isKeyExchangeItem = (item: any): boolean => {
 const recalculateTotals = (json: any) => {
   if (!Array.isArray(json?.items)) return;
 
+  const normalizeStatus = (status: unknown): string => String(status ?? "").toLowerCase();
+
   const itemsOriginalTotal = json.items.reduce((sum: number, item: any) => {
     return sum + toNonNegative(item?.price_original);
   }, 0);
 
   const warningAmount = json.items.reduce((sum: number, item: any) => {
-    return item?.status === "warning" ? sum + toNonNegative(item?.price_original) : sum;
+    return normalizeStatus(item?.status) === "warning"
+      ? sum + toNonNegative(item?.price_original)
+      : sum;
   }, 0);
 
-  const totalFair = json.items.reduce((sum: number, item: any) => {
-    if (item?.status === "warning") return sum;
-    const fair = toNonNegative(item?.price_fair, toNonNegative(item?.price_original));
-    return sum + fair;
+  const discountAmount = json.items.reduce((sum: number, item: any) => {
+    const status = normalizeStatus(item?.status);
+    const original = toNonNegative(item?.price_original);
+    const fair = toNonNegative(item?.price_fair, original);
+
+    if (status === "cut") {
+      return sum + original;
+    }
+    if (status === "negotiable") {
+      return sum + Math.max(0, original - fair);
+    }
+    return sum;
   }, 0);
 
-  const totalOriginal = toNonNegative(json?.total_original, itemsOriginalTotal);
-  const discountAmount = Math.max(0, totalOriginal - totalFair);
+  // 画面に表示される項目合計と整合させるため、itemsの合計を優先する
+  const totalOriginal = itemsOriginalTotal > 0
+    ? itemsOriginalTotal
+    : toNonNegative(json?.total_original, 0);
+  const totalFair = Math.max(0, totalOriginal - discountAmount);
   const riskScore = totalOriginal > 0
     ? Math.min(100, Math.round((discountAmount / totalOriginal) * 100))
     : 0;
@@ -234,6 +249,7 @@ const applyFlyerPriorityRules = (json: any, hasFlyerUpload: boolean) => {
     const flyerPrice = extractFlyerPrice(item);
     const hasMissingFlyerHint = FLYER_MISSING_REGEX.test(mergedText);
     const hasNullOriginal = item?.price_original === null;
+    const normalizedStatus = String(item?.status ?? "").toLowerCase();
 
     const nextItem = {
       ...item,
@@ -246,6 +262,18 @@ const applyFlyerPriorityRules = (json: any, hasFlyerUpload: boolean) => {
     };
 
     if (!hasFlyerUpload) {
+      // 図面未アップロード時は鍵交換代を削減可能扱いにしない
+      if (
+        isKeyExchangeItem(nextItem) &&
+        (normalizedStatus === "cut" || normalizedStatus === "negotiable" || normalizedStatus === "warning")
+      ) {
+        nextItem.status = "warning";
+        nextItem.price_fair = original;
+        nextItem.reason = "図面が未アップロードのため、鍵交換代の妥当性は要確認です。管理会社への確認後に判断してください。";
+        nextItem.requires_confirmation = true;
+        nextItem.listed_in_flyer = null;
+        nextItem.flyer_price = null;
+      }
       return nextItem;
     }
 
@@ -269,8 +297,7 @@ const applyFlyerPriorityRules = (json: any, hasFlyerUpload: boolean) => {
     // 鍵交換代が見積にのみあり図面に記載がない場合は、削減交渉対象として扱う。
     const keyExchangeMissingInFlyer = isKeyExchangeItem(nextItem) && (
       listedInFlyer === false ||
-      hasMissingFlyerHint ||
-      (nextItem.status === "warning" && listedInFlyer !== true)
+      hasMissingFlyerHint
     );
     if (keyExchangeMissingInFlyer && original > 0) {
       nextItem.status = "negotiable";
@@ -330,7 +357,7 @@ export async function POST(req: Request) {
 
     const primaryModel = process.env.GEMINI_MODEL_NAME || "gemini-2.5-pro";
     
-    const hasFlyer = !!planFile;
+    const hasFlyer = !!planFile || !!conditionFile;
 
     console.log("🔧 設定確認:");
     console.log("  - 使用モデル:", primaryModel);
@@ -1126,7 +1153,7 @@ Markdown記法は含めず、純粋なJSON文字列だけを返してくださ�
     }
     
     // 後処理（図面優先ルール + 合計値再計算）
-    const hasFlyerUpload = Boolean(planFile || conditionFile || json?.has_flyer);
+    const hasFlyerUpload = Boolean(planFile || conditionFile);
     json.has_flyer = hasFlyerUpload;
 
     if (Array.isArray(json.items)) {
