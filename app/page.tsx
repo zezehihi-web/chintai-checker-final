@@ -1073,6 +1073,18 @@ export default function Home() {
     }
   }, []);
 
+  const copyTextToClipboard = useCallback(async (text: string): Promise<boolean> => {
+    if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } catch (error) {
+        console.warn("Clipboard API failed, trying fallback:", error);
+      }
+    }
+    return copyTextWithFallback(text);
+  }, [copyTextWithFallback]);
+
   const shareImageFile = useCallback(async (file: File): Promise<boolean> => {
     if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
       return false;
@@ -1226,10 +1238,12 @@ export default function Home() {
       }
       if (url) {
         // URLだけをコピー（テキストは含めない）
-        if (navigator.clipboard?.writeText) {
-          await navigator.clipboard.writeText(url);
-        } else if (!copyTextWithFallback(url)) {
-          throw new Error("クリップボードAPIが利用できません");
+        const copied = await copyTextToClipboard(url);
+        if (!copied) {
+          if (typeof window !== "undefined") {
+            window.prompt("自動コピーに失敗しました。下のURLを手動でコピーしてください。", url);
+          }
+          return;
         }
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2000);
