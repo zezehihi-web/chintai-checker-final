@@ -2040,9 +2040,9 @@ export default function Home() {
                   trackButtonClick(e);
                   resultPlanInputRef.current?.click();
                 }}
-                className="w-3/5 min-w-[320px] max-w-lg mx-auto bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 hover:from-amber-400 hover:via-orange-400 hover:to-rose-500 text-white font-extrabold py-3 px-6 rounded-xl flex items-center justify-center shadow-xl shadow-orange-500/40 transition-all hover:scale-[1.01] ring-2 ring-orange-200/60"
+                className="w-[70%] min-w-[340px] max-w-xl mx-auto bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-extrabold py-3.5 md:py-4 px-7 rounded-xl flex items-center justify-center shadow-xl shadow-blue-600/35 transition-all hover:scale-[1.01] ring-2 ring-blue-200/40"
               >
-                <span className="text-xs sm:text-sm whitespace-nowrap">募集図面を追加アップロードして再診断する</span>
+                <span className="text-sm sm:text-base whitespace-nowrap">募集図面を追加アップロードして再診断する</span>
               </button>
             </div>
           )}

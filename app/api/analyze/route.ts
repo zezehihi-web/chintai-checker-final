@@ -106,6 +106,186 @@ function validateContentBeforeApiCall(content: GeminiContentPart[]): { valid: bo
   return { valid: true };
 }
 
+const FIRE_INSURANCE_REGEX = /(火災保険|家財保険|借家人賠償|住宅総合保険)/;
+const KEY_EXCHANGE_REGEX = /(鍵交換|キー交換|シリンダー交換|鍵交換代|鍵交換費|鍵交換台)/;
+const FLYER_MISSING_REGEX = /(図面|募集図面|マイソク)[\s\S]{0,30}(記載なし|記載がない|未記載|見当たらない|確認できない|なし)/;
+const FLYER_PRESENT_REGEX = /(図面|募集図面|マイソク)[\s\S]{0,30}(記載あり|記載があり|記載を確認|明記|記載有)/;
+
+const normalizeNumberText = (text: string): string => {
+  return text
+    .replace(/[０-９]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0))
+    .replace(/[，]/g, ",")
+    .replace(/円/g, "")
+    .trim();
+};
+
+const toNumberOrNull = (value: unknown): number | null => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const normalized = normalizeNumberText(value).replace(/,/g, "");
+    if (!normalized) return null;
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const toNonNegative = (value: unknown, fallback = 0): number => {
+  const num = toNumberOrNull(value);
+  if (num === null || num < 0) return fallback;
+  return num;
+};
+
+const formatYen = (value: number): string => {
+  return Math.round(value).toLocaleString("ja-JP");
+};
+
+const extractPricesFromText = (text: string): number[] => {
+  if (!text) return [];
+  const normalized = normalizeNumberText(text);
+  const matches = normalized.match(/([0-9]{1,3}(?:,[0-9]{3})+|[0-9]{3,7})\s*/g) || [];
+  return matches
+    .map((raw) => Number(raw.replace(/,/g, "").trim()))
+    .filter((num) => Number.isFinite(num) && num > 0);
+};
+
+const inferFlyerListed = (item: any): boolean | null => {
+  if (typeof item?.listed_in_flyer === "boolean") {
+    return item.listed_in_flyer;
+  }
+  const text = `${item?.reason ?? ""}\n${item?.evidence?.source_description ?? ""}`;
+  if (!text.trim()) return null;
+  if (FLYER_MISSING_REGEX.test(text)) return false;
+  if (FLYER_PRESENT_REGEX.test(text)) return true;
+  return null;
+};
+
+const extractFlyerPrice = (item: any): number | null => {
+  const explicit = toNumberOrNull(item?.flyer_price);
+  if (explicit !== null && explicit > 0) return explicit;
+
+  const text = `${item?.reason ?? ""}\n${item?.evidence?.source_description ?? ""}`;
+  const contextualMatch = text.match(/(?:図面|募集図面|マイソク)[^0-9]{0,20}([0-9０-９,，]{3,9})\s*円?/);
+  if (contextualMatch?.[1]) {
+    const contextualPrice = toNumberOrNull(contextualMatch[1]);
+    if (contextualPrice !== null && contextualPrice > 0) return contextualPrice;
+  }
+
+  const candidates = extractPricesFromText(text);
+  if (candidates.length === 0) return null;
+  const original = toNumberOrNull(item?.price_original);
+  if (original !== null) {
+    const cheaperCandidates = candidates.filter((price) => price < original);
+    if (cheaperCandidates.length > 0) {
+      return Math.min(...cheaperCandidates);
+    }
+  }
+  return Math.min(...candidates);
+};
+
+const isFireInsuranceItem = (item: any): boolean => {
+  return item?.is_insurance === true || FIRE_INSURANCE_REGEX.test(String(item?.name ?? ""));
+};
+
+const isKeyExchangeItem = (item: any): boolean => {
+  return KEY_EXCHANGE_REGEX.test(String(item?.name ?? ""));
+};
+
+const recalculateTotals = (json: any) => {
+  if (!Array.isArray(json?.items)) return;
+
+  const itemsOriginalTotal = json.items.reduce((sum: number, item: any) => {
+    return sum + toNonNegative(item?.price_original);
+  }, 0);
+
+  const warningAmount = json.items.reduce((sum: number, item: any) => {
+    return item?.status === "warning" ? sum + toNonNegative(item?.price_original) : sum;
+  }, 0);
+
+  const totalFair = json.items.reduce((sum: number, item: any) => {
+    if (item?.status === "warning") return sum;
+    const fair = toNonNegative(item?.price_fair, toNonNegative(item?.price_original));
+    return sum + fair;
+  }, 0);
+
+  const totalOriginal = toNonNegative(json?.total_original, itemsOriginalTotal);
+  const discountAmount = Math.max(0, totalOriginal - totalFair);
+  const riskScore = totalOriginal > 0
+    ? Math.min(100, Math.round((discountAmount / totalOriginal) * 100))
+    : 0;
+
+  json.total_original = totalOriginal;
+  json.total_fair = totalFair;
+  json.discount_amount = discountAmount;
+  json.warning_amount = warningAmount;
+  json.risk_score = riskScore;
+};
+
+const applyFlyerPriorityRules = (json: any, hasFlyerUpload: boolean) => {
+  if (!Array.isArray(json?.items)) return;
+
+  json.items = json.items.map((item: any) => {
+    const original = toNonNegative(item?.price_original);
+    const baseReason = typeof item?.reason === "string" ? item.reason : "";
+    const mergedText = `${baseReason}\n${item?.evidence?.source_description ?? ""}`;
+    const listedInFlyer = inferFlyerListed(item);
+    const flyerPrice = extractFlyerPrice(item);
+    const hasMissingFlyerHint = FLYER_MISSING_REGEX.test(mergedText);
+    const hasNullOriginal = item?.price_original === null;
+
+    const nextItem = {
+      ...item,
+      price_original: original,
+      requires_confirmation: hasNullOriginal,
+      reason: hasNullOriginal
+        ? `${baseReason || "金額の読み取りが不完全です"}（※読み取り要確認）`
+        : baseReason,
+      listed_in_flyer: listedInFlyer
+    };
+
+    if (!hasFlyerUpload) {
+      return nextItem;
+    }
+
+    // 図面に記載された火災保険の方が安い場合は、図面価格を適正額として優先する。
+    if (
+      isFireInsuranceItem(nextItem) &&
+      flyerPrice !== null &&
+      flyerPrice > 0 &&
+      original > flyerPrice
+    ) {
+      nextItem.status = "negotiable";
+      nextItem.price_fair = flyerPrice;
+      nextItem.reason = `募集図面の火災保険料（¥${formatYen(flyerPrice)}）の方が安いため、図面金額を適正額として差額分を削減可能額に反映しました。`;
+      nextItem.requires_confirmation = false;
+      nextItem.is_insurance = true;
+      nextItem.listed_in_flyer = true;
+      nextItem.flyer_price = flyerPrice;
+      return nextItem;
+    }
+
+    // 鍵交換代が見積にのみあり図面に記載がない場合は、削減交渉対象として扱う。
+    const keyExchangeMissingInFlyer = isKeyExchangeItem(nextItem) && (
+      listedInFlyer === false ||
+      hasMissingFlyerHint ||
+      (nextItem.status === "warning" && listedInFlyer !== true)
+    );
+    if (keyExchangeMissingInFlyer && original > 0) {
+      nextItem.status = "negotiable";
+      nextItem.price_fair = 0;
+      nextItem.reason = "募集図面に鍵交換代の記載が見当たらないため、見積書への上乗せの可能性があります。削減交渉の対象です。";
+      nextItem.requires_confirmation = true;
+      nextItem.listed_in_flyer = false;
+      nextItem.flyer_price = null;
+      return nextItem;
+    }
+
+    return nextItem;
+  });
+};
+
 export async function POST(req: Request) {
   try {
     // APIキーの再確認（リクエスト時）
@@ -718,6 +898,19 @@ JSON形式で出力:
 
 以下の優先順位に従って、機械的に判定を行ってください。
 
+### 優先順位0：【図面優先の強制ルール】※最優先で必ず適用
+1. **火災保険（図面と見積の金額差）**
+   - 条件: 図面にも火災保険の金額記載があり、**見積書 > 図面**
+   - 判定: **negotiable**
+   - 適正価格: **図面の金額（price_fair = flyer_price）**
+   - 理由: 図面金額を優先し、差額を削減可能額に含める
+
+2. **鍵交換代（見積にあり、図面に記載なし）**
+   - 条件: 見積書に鍵交換代があり、図面に鍵交換代の記載が確認できない
+   - 判定: **negotiable**（削減可能項目に入れる）
+   - 適正価格: 0円
+   - 理由: 図面未記載のため上乗せの可能性があり、削減交渉対象
+
 ### 優先順位1：【仲介手数料の厳格判定】
 **重要**: 仲介手数料は事前の同意がない場合、法律的に賃料の0.5ヶ月分（税別）＝0.55ヶ月分（税込）が原則です。これを超える場合は必ず削減可能として判定してください。
 
@@ -734,7 +927,7 @@ JSON形式で出力:
 
 **重要原則**: 上記対象の付帯費用は原則として「不要（0円にできる）」と判定してください。削減可能額に計上してください。
 
-**重要**: 鍵交換費用は含めないこと（鍵交換は通常必須のため）
+**重要**: 鍵交換費用はここに入れないこと（優先順位0で処理）
 
 1. **図面がアップロードされていない場合 OR 図面に該当項目の記載が確認できない場合**
    - 判定: **cut** （削減可能額に計上）
@@ -774,7 +967,7 @@ JSON形式で出力:
 上記2.5で定めた以外で「warning」を使う場合は、図面に明確に「必須」と記載があり、かつ削減が困難と判断される場合のみにしてください。
 
 ### 優先順位4：【ホワイトリスト項目】（適正）
-対象: **敷金, 礼金, 賃料, 前家賃, 共益費/管理費, 更新料, 保証会社利用料, 町内会費, 口座振替手数料, クリーニング費**（※鍵交換代・鍵セット費・キーセットは優先順位2.5で要確認として判定すること）
+対象: **敷金, 礼金, 賃料, 前家賃, 共益費/管理費, 更新料, 保証会社利用料, 町内会費, 口座振替手数料, クリーニング費**（※鍵交換代・鍵セット費・キーセットは優先順位0/2.5の条件を優先）
 
 **重要**: これらの項目は基本的に適正ですが、削減可能な余地がある場合は必ず「negotiable」として判定し、削減可能額に計上してください。
 
@@ -817,7 +1010,9 @@ Markdown記法は含めず、純粋なJSON文字列だけを返してくださ�
       "price_fair": 適正価格（数値）,
       "status": "fair|negotiable|cut|warning",
       "reason": "上記の判定ルールに基づいた具体的なアドバイス",
-      "is_insurance": true/false（火災保険の場合のみtrue）
+      "is_insurance": true/false（火災保険の場合のみtrue）,
+      "listed_in_flyer": true/false/null（図面に記載があるか。図面未アップロード時はnull）,
+      "flyer_price": 図面記載金額（数値 or null）
     }
   ],
   "total_original": 見積書合計,
@@ -930,23 +1125,13 @@ Markdown記法は含めず、純粋なJSON文字列だけを返してくださ�
       throw new Error(`AIの応答の解析に失敗しました: ${parseError.message}\n応答の最初の500文字: ${responseText.substring(0, 500)}`);
     }
     
-    // 後処理
-    if (json.items && Array.isArray(json.items)) {
-      json.items = json.items.map((item: any) => {
-        if (item.price_original === null) {
-          return {
-            ...item,
-            price_original: 0,
-            requires_confirmation: true,
-            reason: item.reason + "（※読み取り要確認）"
-          };
-        }
-        return {
-          ...item,
-          requires_confirmation: false
-        };
-      });
-      
+    // 後処理（図面優先ルール + 合計値再計算）
+    const hasFlyerUpload = Boolean(planFile || conditionFile || json?.has_flyer);
+    json.has_flyer = hasFlyerUpload;
+
+    if (Array.isArray(json.items)) {
+      applyFlyerPriorityRules(json, hasFlyerUpload);
+
       const hasUnconfirmed = json.items.some((item: any) => item.requires_confirmation);
       json.has_unconfirmed_items = hasUnconfirmed;
       json.unconfirmed_item_names = json.items
@@ -1214,6 +1399,8 @@ Markdown記法は含めず、純粋なJSON文字列だけを返してくださ�
         logic_path: r === 0 ? 'Error: Rent is 0' : 'None'
       };
     }
+
+    recalculateTotals(json);
 
     console.log("診断完了:", {
       items_count: json.items?.length,
