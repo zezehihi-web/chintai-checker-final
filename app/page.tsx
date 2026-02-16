@@ -589,6 +589,10 @@ export default function Home() {
   const [shareId, setShareId] = useState<string | null>(null);
   const [isCreatingShare, setIsCreatingShare] = useState(false);
   const [lineToken, setLineToken] = useState<string | null>(null);
+  const [isLineInAppBrowser, setIsLineInAppBrowser] = useState(false);
+  const [isIOSDevice, setIsIOSDevice] = useState(false);
+  const [downloadPreviewUrl, setDownloadPreviewUrl] = useState<string | null>(null);
+  const [downloadPreviewFile, setDownloadPreviewFile] = useState<File | null>(null);
   // 注: isCreatingLineLink は不要になりました（純粋な<a>タグ使用）
   
   // カメラ関連
@@ -614,6 +618,21 @@ export default function Home() {
 
   // 図面追加時の自動再診断フラグ
   const shouldAutoReanalyzeRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof navigator === "undefined") return;
+    const ua = navigator.userAgent || "";
+    const iosByUa = /iP(hone|ad|od)/i.test(ua);
+    const iosByTouch = navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1;
+    setIsIOSDevice(iosByUa || iosByTouch);
+    setIsLineInAppBrowser(/Line\//i.test(ua));
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (downloadPreviewUrl) URL.revokeObjectURL(downloadPreviewUrl);
+    };
+  }, [downloadPreviewUrl]);
 
   // ブラウザバック対策: sessionStorage から診断結果とLINE連携トークンを復元（本番仕様）
   // useLayoutEffect で描画前に同期的に実行し、トップ画面のチラつきを防ぐ
@@ -1010,26 +1029,90 @@ export default function Home() {
     setConditionPreview(null);
     setResult(null);
     setLineToken(null);
+    setDownloadPreviewFile(null);
+    setDownloadPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
     setCurrentView("top");
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
+
+  const closeDownloadPreview = useCallback(() => {
+    setDownloadPreviewFile(null);
+    setDownloadPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+  }, []);
+
+  const openExternalUrl = useCallback((url: string) => {
+    const openedWindow = window.open(url, "_blank", "noopener,noreferrer");
+    if (!openedWindow) {
+      window.location.href = url;
+    }
+  }, []);
+
+  const copyTextWithFallback = useCallback((text: string): boolean => {
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.top = "0";
+    textarea.style.left = "0";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.focus();
+    textarea.select();
+    try {
+      return document.execCommand("copy");
+    } catch {
+      return false;
+    } finally {
+      document.body.removeChild(textarea);
+    }
+  }, []);
+
+  const shareImageFile = useCallback(async (file: File): Promise<boolean> => {
+    if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
+      return false;
+    }
+    const shareData: ShareData = {
+      title: "診断結果画像",
+      files: [file],
+    };
+    if (typeof navigator.canShare === "function" && !navigator.canShare({ files: [file] })) {
+      return false;
+    }
+    try {
+      await navigator.share(shareData);
+      return true;
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return true;
+      }
+      console.warn("画像共有に失敗:", error);
+      return false;
+    }
+  }, []);
 
   const handleLineCtaClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault();
 
     const primaryUrl = lineLiffSchemeUrl;
     const fallbackUrl = lineLiffUniversalUrl;
-    const start = Date.now();
-
-    window.location.href = primaryUrl;
-
-    if (lineToken) {
-      setTimeout(() => {
-        if (Date.now() - start < 1600) {
-          window.location.href = fallbackUrl;
-        }
-      }, 1200);
+    if (isLineInAppBrowser) {
+      window.location.href = fallbackUrl;
+      return;
     }
+
+    const start = Date.now();
+    window.location.href = primaryUrl;
+    setTimeout(() => {
+      if (Date.now() - start < 1600) {
+        window.location.href = fallbackUrl;
+      }
+    }, 1200);
   };
 
   const formatYen = (num: number) => new Intl.NumberFormat('ja-JP').format(num);
@@ -1115,7 +1198,7 @@ export default function Home() {
     }
     if (url) {
       const shareText = generateShareText() + url;
-      window.open(`https://line.me/R/msg/text/?${encodeURIComponent(shareText)}`, '_blank');
+      openExternalUrl(`https://line.me/R/msg/text/?${encodeURIComponent(shareText)}`);
     }
   };
 
@@ -1126,7 +1209,7 @@ export default function Home() {
       if (id) url = typeof window !== 'undefined' ? `${window.location.origin}/share/${id}` : "";
     }
     if (url) {
-      window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(generateShareText())}&url=${encodeURIComponent(url)}&hashtags=賃貸,初期費用`, '_blank');
+      openExternalUrl(`https://twitter.com/intent/tweet?text=${encodeURIComponent(generateShareText())}&url=${encodeURIComponent(url)}&hashtags=賃貸,初期費用`);
     }
   };
 
@@ -1143,7 +1226,11 @@ export default function Home() {
       }
       if (url) {
         // URLだけをコピー（テキストは含めない）
-        await navigator.clipboard.writeText(url);
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(url);
+        } else if (!copyTextWithFallback(url)) {
+          throw new Error("クリップボードAPIが利用できません");
+        }
         setIsCopied(true);
         setTimeout(() => setIsCopied(false), 2000);
       } else {
@@ -1202,15 +1289,42 @@ export default function Home() {
           }
         },
       } as Parameters<typeof html2canvas>[1]);
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/png"));
+      if (!blob) throw new Error("画像データの生成に失敗しました");
+
+      const imageFile = new File([blob], "診断結果.png", { type: "image/png" });
+      const shouldUseLineCompatibleFlow = isLineInAppBrowser || isIOSDevice;
+
+      if (shouldUseLineCompatibleFlow) {
+        const shared = await shareImageFile(imageFile);
+        if (shared) return;
+
+        setDownloadPreviewFile(imageFile);
+        setDownloadPreviewUrl((prev) => {
+          if (prev) URL.revokeObjectURL(prev);
+          return URL.createObjectURL(blob);
+        });
+        return;
+      }
+
+      const objectUrl = URL.createObjectURL(blob);
       const link = document.createElement("a");
-      link.download = `診断結果.png`;
-      link.href = canvas.toDataURL("image/png");
+      link.download = "診断結果.png";
+      link.href = objectUrl;
+      document.body.appendChild(link);
       link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
     } catch (error) { 
       console.error("画像保存エラー:", error);
       alert("保存に失敗しました"); 
     }
   };
+
+  const downloadButtonLabel = isLineInAppBrowser ? "画像保存" : "画像DL";
+  const downloadGuideText = isLineInAppBrowser
+    ? "LINEブラウザでは直接ダウンロードできない場合があります。画像を長押しして保存してください。"
+    : "このブラウザでは直接ダウンロードできない場合があります。画像を長押しして保存してください。";
 
   // 注: LINE連携は純粋な<a>タグで実装（handleLineLink不要）
 
@@ -1231,6 +1345,49 @@ export default function Home() {
         onCapture={handleCameraCapture}
         targetType={cameraTarget}
       />
+
+      {downloadPreviewUrl && (
+        <div className="fixed inset-0 z-[70] bg-black/80 p-4 flex items-center justify-center">
+          <div className="w-full max-w-md bg-white rounded-2xl p-4 shadow-2xl">
+            <p className="text-sm font-bold text-slate-800 mb-2">画像を保存</p>
+            <p className="text-xs text-slate-600 mb-3">
+              {downloadGuideText}
+            </p>
+            <img
+              src={downloadPreviewUrl}
+              alt="診断結果プレビュー"
+              className="w-full rounded-lg border border-gray-200 mb-3"
+            />
+            <div className="flex gap-2">
+              {downloadPreviewFile && (
+                <button
+                  type="button"
+                  onClick={async (e) => {
+                    trackButtonClick(e);
+                    const shared = await shareImageFile(downloadPreviewFile);
+                    if (!shared) {
+                      alert("共有メニューを開けませんでした。画像を長押しして保存してください。");
+                    }
+                  }}
+                  className="flex-1 bg-slate-700 text-white text-sm font-bold py-2.5 rounded-lg"
+                >
+                  共有メニューを開く
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={(e) => {
+                  trackButtonClick(e);
+                  closeDownloadPreview();
+                }}
+                className="flex-1 bg-gray-100 text-slate-800 text-sm font-bold py-2.5 rounded-lg border border-gray-300"
+              >
+                閉じる
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ================= TOP VIEW ================= */}
       {currentView === "top" && (
@@ -1555,7 +1712,7 @@ export default function Home() {
                     }} 
                     className="flex-1 py-3 rounded-xl font-bold bg-slate-700 text-white text-sm hover:bg-slate-600 flex items-center justify-center gap-2 shadow-md"
                   >
-                    <span>💾</span> 画像DL
+                    <span>💾</span> {downloadButtonLabel}
                   </button>
                   <button 
                     onClick={(e) => {
@@ -1839,7 +1996,7 @@ export default function Home() {
               }} 
               className="flex-1 min-w-[140px] py-3 rounded-xl font-bold bg-slate-700 text-white text-sm hover:bg-slate-600 flex items-center justify-center gap-2 shadow-md"
             >
-              <span>💾</span> 画像DL
+              <span>💾</span> {downloadButtonLabel}
             </button>
             <button 
               onClick={(e) => {

@@ -317,6 +317,7 @@ export default function LiffLinkPage() {
             </p>
 
             <button
+              type="button"
               onClick={(e) => {
                 trackButtonClick(e);
                 const lineUrl = process.env.NEXT_PUBLIC_LINE_URL || 'https://lin.ee/RSEtLGm';
@@ -325,7 +326,7 @@ export default function LiffLinkPage() {
                   external: true
                 });
               }}
-              className="neon-btn-lime block w-full text-white font-bold py-3 px-6 rounded-2xl mb-4 transition-transform hover:scale-105"
+              className="block w-full bg-[#06C755] text-white font-bold py-3 px-6 rounded-2xl mb-4 shadow-lg shadow-green-500/30 transition-transform hover:brightness-105 hover:scale-[1.01] active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 focus-visible:ring-offset-2"
             >
               <span className="flex items-center justify-center gap-2">
                 <svg viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5">

@@ -247,17 +247,17 @@ body.theme-neon {
 
 /* Lime variant (useful for "friend add" CTA without solid fill) */
 .neon-btn-lime {
-  background-color: rgba(var(--neon-surface) / 0.28);
-  border: 1px solid rgba(var(--neon-lime) / 0.85);
+  background-color: rgba(var(--neon-surface, 14 18 26) / 0.28);
+  border: 1px solid rgba(var(--neon-lime, 163 230 53) / 0.85);
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.04) inset,
-    0 0 16px rgba(var(--neon-lime) / 0.22);
+    0 0 16px rgba(var(--neon-lime, 163 230 53) / 0.22);
 }
 
 .neon-btn-lime:hover {
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.06) inset,
-    0 0 22px rgba(var(--neon-lime) / 0.30);
+    0 0 22px rgba(var(--neon-lime, 163 230 53) / 0.30);
 }
 
 /* Spinner with neon outline */
