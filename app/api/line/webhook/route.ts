@@ -10,6 +10,7 @@ import { NextResponse } from 'next/server';
 import { verifySignature } from '@/lib/line-signature';
 import { createLineClient } from '@/lib/line-client';
 import { getUserCases, setActiveCase, getActiveCase, getConversationState, setConversationState, getCase } from '@/lib/kv';
+import { sendEstimatePdf } from '@/lib/send-estimate-pdf';
 import type { WebhookEvent, MessageEvent, TextEventMessage, PostbackEvent, ImageEventMessage } from '@line/bot-sdk';
 
 // LINE WebhookはPOSTのみ受け付ける
@@ -280,8 +281,28 @@ export async function POST(req: Request) {
         // 会話状態に基づく分岐（最優先）
         if (caseId && conversationState?.step === 'property_confirm') {
           if (messageText === 'はい') {
-            console.log('[property_confirm] User selected "はい" - moving to application_intent');
+            console.log('[property_confirm] User selected "はい" - sending estimate PDF then moving to application_intent');
 
+            // 見積書PDFを自動送信（裏コマンドモード以外）
+            const pdfCaseData = await getCase(caseId);
+            if (pdfCaseData?.result && !pdfCaseData.result.is_secret_mode && pdfCaseData.result.items) {
+              try {
+                const pdfResult = await sendEstimatePdf({
+                  userId,
+                  caseId,
+                  result: pdfCaseData.result,
+                });
+                if (pdfResult.success) {
+                  console.log(`[property_confirm] Estimate PDF sent: ${pdfResult.pdfUrl}`);
+                } else {
+                  console.warn(`[property_confirm] PDF send failed: ${pdfResult.error}`);
+                }
+              } catch (pdfError) {
+                console.error('[property_confirm] PDF generation error:', pdfError);
+              }
+            }
+
+            // 「はい」が選択された場合 → 申し込み希望を聞く
             await client.replyMessage(event.replyToken, {
               type: 'flex',
               altText: 'お申し込みについて',
