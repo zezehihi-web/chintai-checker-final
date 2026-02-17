@@ -3,6 +3,7 @@
  *
  * 株式会社beberise名義のA4見積書を @react-pdf/renderer で生成する。
  * 「診断」「削減」等の語は使わず、一般的な不動産見積書として出力する。
+ * 必ず1ページに収まるようコンパクトに設計。
  */
 
 import React from 'react';
@@ -33,36 +34,36 @@ Font.register({
 });
 
 // ---------------------------------------------------------------------------
-// スタイル定義
+// スタイル定義（1ページに収まるようコンパクトに）
 // ---------------------------------------------------------------------------
 const styles = StyleSheet.create({
   page: {
     fontFamily: 'NotoSansJP',
-    fontSize: 10,
-    paddingTop: 40,
-    paddingBottom: 60,
-    paddingHorizontal: 40,
+    fontSize: 9,
+    paddingTop: 30,
+    paddingBottom: 40,
+    paddingHorizontal: 36,
     color: '#1a1a1a',
   },
 
   // --- ヘッダー ---
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 700,
     textAlign: 'center',
-    marginBottom: 4,
-    letterSpacing: 4,
+    marginBottom: 3,
+    letterSpacing: 3,
   },
   titleUnderline: {
     borderBottomWidth: 2,
     borderBottomColor: '#1a1a1a',
-    marginBottom: 24,
-    marginHorizontal: 100,
+    marginBottom: 14,
+    marginHorizontal: 80,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: 12,
   },
   headerLeft: {
     flex: 1,
@@ -72,43 +73,19 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   dateText: {
-    fontSize: 9,
-    marginBottom: 12,
+    fontSize: 8,
+    marginBottom: 8,
     textAlign: 'right',
   },
-  customerName: {
-    fontSize: 13,
-    fontWeight: 700,
-    marginBottom: 2,
-  },
-  customerSuffix: {
-    fontSize: 10,
-    marginBottom: 8,
-  },
   companyName: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 700,
     marginBottom: 2,
   },
   companyDetail: {
-    fontSize: 8,
+    fontSize: 7.5,
     color: '#555555',
     marginBottom: 1,
-  },
-  stampBox: {
-    width: 50,
-    height: 50,
-    borderWidth: 1,
-    borderColor: '#cccccc',
-    borderRadius: 25,
-    marginTop: 4,
-    alignSelf: 'flex-end',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  stampText: {
-    fontSize: 6,
-    color: '#cccccc',
   },
 
   // --- 合計欄（ヘッダー直下） ---
@@ -119,70 +96,70 @@ const styles = StyleSheet.create({
     backgroundColor: '#f0f4f8',
     borderWidth: 1,
     borderColor: '#333333',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginBottom: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    marginBottom: 12,
   },
   totalLabel: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 700,
   },
   totalAmount: {
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: 700,
   },
 
   // --- 物件情報 ---
   propertySection: {
-    marginBottom: 16,
-    paddingBottom: 8,
+    marginBottom: 10,
+    paddingBottom: 6,
     borderBottomWidth: 1,
     borderBottomColor: '#e0e0e0',
   },
   propertyRow: {
     flexDirection: 'row',
-    marginBottom: 3,
+    marginBottom: 2,
   },
   propertyLabel: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: 700,
-    width: 60,
+    width: 50,
     color: '#555555',
   },
   propertyValue: {
-    fontSize: 9,
+    fontSize: 8,
   },
 
   // --- 明細テーブル ---
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: '#333333',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
   },
   tableHeaderText: {
     color: '#ffffff',
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: 700,
   },
   tableRow: {
     flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: '#e8e8e8',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingVertical: 4,
+    paddingHorizontal: 6,
   },
   tableRowAlt: {
     backgroundColor: '#fafafa',
   },
   colNo: {
-    width: 30,
+    width: 24,
   },
   colName: {
     flex: 1,
   },
   colAmount: {
-    width: 120,
+    width: 110,
     textAlign: 'right',
   },
 
@@ -191,51 +168,51 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     borderTopWidth: 2,
     borderTopColor: '#333333',
-    paddingVertical: 8,
-    paddingHorizontal: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 6,
   },
   tableTotalLabel: {
     flex: 1,
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: 700,
     textAlign: 'right',
-    paddingRight: 12,
+    paddingRight: 10,
   },
   tableTotalAmount: {
-    width: 120,
-    fontSize: 13,
+    width: 110,
+    fontSize: 12,
     fontWeight: 700,
     textAlign: 'right',
   },
 
   // --- 備考欄 ---
   notesSection: {
-    marginTop: 24,
+    marginTop: 14,
     borderWidth: 1,
     borderColor: '#999999',
-    padding: 12,
+    padding: 8,
   },
   notesTitle: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: 700,
-    marginBottom: 6,
+    marginBottom: 4,
     color: '#333333',
   },
   notesText: {
-    fontSize: 7.5,
-    lineHeight: 1.6,
+    fontSize: 7,
+    lineHeight: 1.5,
     color: '#444444',
-    marginBottom: 3,
+    marginBottom: 2,
   },
 
   // --- フッター ---
   footer: {
     position: 'absolute',
-    bottom: 30,
-    left: 40,
-    right: 40,
+    bottom: 20,
+    left: 36,
+    right: 36,
     textAlign: 'center',
-    fontSize: 7,
+    fontSize: 6,
     color: '#aaaaaa',
   },
 });
@@ -289,7 +266,7 @@ const OfficialEstimatePdf: React.FC<OfficialEstimatePdfProps> = ({
 
   return (
     <Document>
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={styles.page} wrap={false}>
         {/* ===== タイトル ===== */}
         <Text style={styles.title}>初期費用概算御見積書</Text>
         <View style={styles.titleUnderline} />
@@ -297,33 +274,22 @@ const OfficialEstimatePdf: React.FC<OfficialEstimatePdfProps> = ({
         {/* ===== 発行日 ===== */}
         <Text style={styles.dateText}>発行日: {formatDate(date)}</Text>
 
-        {/* ===== ヘッダー（宛名 / 自社情報） ===== */}
+        {/* ===== ヘッダー（挨拶文 / 自社情報） ===== */}
         <View style={styles.headerRow}>
-          {/* 左: 宛名 */}
+          {/* 左: 挨拶文 */}
           <View style={styles.headerLeft}>
-            <Text style={styles.customerName}>お客様</Text>
-            <Text style={styles.customerSuffix}>御中</Text>
-            <View style={{ marginTop: 8 }}>
-              <Text style={{ fontSize: 9, color: '#555555' }}>
-                下記の通りお見積り申し上げます。
-              </Text>
-            </View>
+            <Text style={{ fontSize: 8, color: '#555555' }}>
+              下記の通りお見積り申し上げます。
+            </Text>
           </View>
 
           {/* 右: 自社情報 */}
           <View style={styles.headerRight}>
             <Text style={styles.companyName}>株式会社beberise</Text>
-            <Text style={styles.companyDetail}>〒150-0043</Text>
+            <Text style={styles.companyDetail}>〒107-0052</Text>
             <Text style={styles.companyDetail}>
-              東京都渋谷区道玄坂1-2-3 渋谷ビル4F
+              東京都港区赤坂６丁目１４−３ 近文ビル 6階A号室
             </Text>
-            <Text style={styles.companyDetail}>TEL: 03-XXXX-XXXX</Text>
-            <Text style={styles.companyDetail}>
-              Mail: info@beberise.co.jp
-            </Text>
-            <View style={styles.stampBox}>
-              <Text style={styles.stampText}>印</Text>
-            </View>
           </View>
         </View>
 
@@ -350,7 +316,6 @@ const OfficialEstimatePdf: React.FC<OfficialEstimatePdfProps> = ({
         </View>
 
         {/* ===== 明細テーブル ===== */}
-        {/* テーブルヘッダー */}
         <View style={styles.tableHeader}>
           <Text style={[styles.tableHeaderText, styles.colNo]}>No.</Text>
           <Text style={[styles.tableHeaderText, styles.colName]}>項目名</Text>
@@ -359,7 +324,6 @@ const OfficialEstimatePdf: React.FC<OfficialEstimatePdfProps> = ({
           </Text>
         </View>
 
-        {/* テーブルボディ */}
         {items.map((item, index) => (
           <View
             key={index}
@@ -368,9 +332,9 @@ const OfficialEstimatePdf: React.FC<OfficialEstimatePdfProps> = ({
               index % 2 === 1 ? styles.tableRowAlt : {},
             ]}
           >
-            <Text style={[{ fontSize: 9 }, styles.colNo]}>{index + 1}</Text>
-            <Text style={[{ fontSize: 9 }, styles.colName]}>{item.name}</Text>
-            <Text style={[{ fontSize: 9 }, styles.colAmount]}>
+            <Text style={[{ fontSize: 8 }, styles.colNo]}>{index + 1}</Text>
+            <Text style={[{ fontSize: 8 }, styles.colName]}>{item.name}</Text>
+            <Text style={[{ fontSize: 8 }, styles.colAmount]}>
               {formatYen(item.amount)}
             </Text>
           </View>
